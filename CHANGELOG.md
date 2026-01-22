@@ -4,6 +4,24 @@ All notable changes to this project will be documented in this file.
 
 This changelog is automatically managed by [Release Please](https://github.com/googleapis/release-please).
 
+## [3.0.0](https://github.com/yigitahmetsahin/workflow-ts/compare/v2.1.0...v3.0.0) (2026-01-22)
+
+
+### ⚠ BREAKING CHANGES
+
+* WorkGroup, isWorkGroup, WORK_GROUP_SYMBOL, when(), and getAny() have been removed. Use chained .serial() and .parallel() calls.
+
+### Features
+
+* add getAny() for non-chained workflow building ([96d717b](https://github.com/yigitahmetsahin/workflow-ts/commit/96d717b247aeb4a0aa18924febb9b65051da54af))
+* add WorkGroup for dynamic parallel work building ([8220c7c](https://github.com/yigitahmetsahin/workflow-ts/commit/8220c7c72f3c44bbaee247b966b6000052ecc437))
+* simplify API to chaining-only workflow building ([6c92fda](https://github.com/yigitahmetsahin/workflow-ts/commit/6c92fda42e6ccf56b7c6d08dab7b55955f0045e2))
+
+
+### Bug Fixes
+
+* use chained workflow methods to preserve type inference ([090f702](https://github.com/yigitahmetsahin/workflow-ts/commit/090f7025bb0397025a5d4327de83ef11dbc8f830))
+
 ## [2.1.0](https://github.com/yigitahmetsahin/workflow-ts/compare/v2.0.0...v2.1.0) (2026-01-22)
 
 
