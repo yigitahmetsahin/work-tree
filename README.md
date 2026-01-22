@@ -250,6 +250,77 @@ const mixedWorkflow = new Workflow<{ userId: string }>({ silenceError: true })
   });
 ```
 
+### Workflow Options
+
+The `Workflow` constructor accepts an options object:
+
+```typescript
+interface WorkflowOptions {
+  silenceError?: boolean; // Default error handling for all works (default: false)
+  failFast?: boolean; // Stop on first error or continue (default: true)
+}
+```
+
+#### `failFast`
+
+Controls whether the workflow stops immediately on the first error or continues executing remaining works:
+
+```typescript
+// Default: failFast: true - stops on first error
+const workflow = new Workflow<{ userId: string }>()
+  .serial({ name: 'work1', execute: async () => 'ok' })
+  .serial({
+    name: 'failing',
+    execute: async () => {
+      throw new Error('Stop here');
+    },
+  })
+  .serial({ name: 'work3', execute: async () => 'never runs' });
+// work3 will NOT execute
+
+// failFast: false - continues despite errors
+const workflow = new Workflow<{ userId: string }>({ failFast: false })
+  .serial({ name: 'work1', execute: async () => 'ok' })
+  .serial({
+    name: 'failing',
+    execute: async () => {
+      throw new Error('Continue anyway');
+    },
+  })
+  .serial({ name: 'work3', execute: async () => 'still runs' });
+// work3 WILL execute, but workflow still fails at the end
+
+const result = await workflow.run({ userId: '123' });
+// result.status === WorkflowStatus.FAILED
+// result.error.message === 'Continue anyway' (first error)
+// result.context.workResults.get('work3')?.result === 'still runs'
+```
+
+You can combine `failFast: false` with `silenceError: true` to run all works and complete successfully:
+
+```typescript
+const workflow = new Workflow<{ userId: string }>({
+  failFast: false,
+  silenceError: true,
+})
+  .serial({
+    name: 'optional1',
+    execute: async () => {
+      throw new Error('Ignored');
+    },
+  })
+  .serial({
+    name: 'optional2',
+    execute: async () => {
+      throw new Error('Also ignored');
+    },
+  })
+  .serial({ name: 'final', execute: async () => 'done' });
+
+const result = await workflow.run({ userId: '123' });
+// result.status === WorkflowStatus.COMPLETED (all errors silenced)
+```
+
 ### `.run(initialData)`
 
 Execute the workflow with initial data.

@@ -807,4 +807,181 @@ describe('Workflow', () => {
       expect(result.context.workResults.get('last')?.result).toBe('completed');
     });
   });
+
+  describe('failFast option', () => {
+    it('should stop on first error by default (failFast: true)', async () => {
+      const executionOrder: string[] = [];
+
+      const workflow = new Workflow<{ value: number }>()
+        .serial({
+          name: 'first',
+          execute: async () => {
+            executionOrder.push('first');
+            return 'ok';
+          },
+        })
+        .serial({
+          name: 'failing',
+          execute: async () => {
+            executionOrder.push('failing');
+            throw new Error('Stop here');
+          },
+        })
+        .serial({
+          name: 'never',
+          execute: async () => {
+            executionOrder.push('never');
+            return 'should not run';
+          },
+        });
+
+      const result = await workflow.run({ value: 5 });
+
+      expect(result.status).toBe(WorkflowStatus.FAILED);
+      expect(executionOrder).toEqual(['first', 'failing']);
+      expect(result.context.workResults.has('never')).toBe(false);
+    });
+
+    it('should continue execution when failFast: false', async () => {
+      const executionOrder: string[] = [];
+
+      const workflow = new Workflow<{ value: number }>({ failFast: false })
+        .serial({
+          name: 'first',
+          execute: async () => {
+            executionOrder.push('first');
+            return 'ok';
+          },
+        })
+        .serial({
+          name: 'failing',
+          execute: async () => {
+            executionOrder.push('failing');
+            throw new Error('Continue anyway');
+          },
+        })
+        .serial({
+          name: 'last',
+          execute: async () => {
+            executionOrder.push('last');
+            return 'completed';
+          },
+        });
+
+      const result = await workflow.run({ value: 5 });
+
+      expect(result.status).toBe(WorkflowStatus.FAILED);
+      expect(result.error?.message).toBe('Continue anyway');
+      expect(executionOrder).toEqual(['first', 'failing', 'last']);
+      expect(result.context.workResults.get('first')?.result).toBe('ok');
+      expect(result.context.workResults.get('failing')?.status).toBe(WorkStatus.FAILED);
+      expect(result.context.workResults.get('last')?.result).toBe('completed');
+    });
+
+    it('should collect first error when multiple works fail with failFast: false', async () => {
+      const workflow = new Workflow<{ value: number }>({ failFast: false })
+        .serial({
+          name: 'fail1',
+          execute: async () => {
+            throw new Error('First error');
+          },
+        })
+        .serial({
+          name: 'fail2',
+          execute: async () => {
+            throw new Error('Second error');
+          },
+        });
+
+      const result = await workflow.run({ value: 5 });
+
+      expect(result.status).toBe(WorkflowStatus.FAILED);
+      expect(result.error?.message).toBe('First error');
+      expect(result.context.workResults.get('fail1')?.status).toBe(WorkStatus.FAILED);
+      expect(result.context.workResults.get('fail2')?.status).toBe(WorkStatus.FAILED);
+    });
+
+    it('should complete successfully if no errors with failFast: false', async () => {
+      const workflow = new Workflow<{ value: number }>({ failFast: false })
+        .serial({ name: 'work1', execute: async () => 'result1' })
+        .serial({ name: 'work2', execute: async () => 'result2' });
+
+      const result = await workflow.run({ value: 5 });
+
+      expect(result.status).toBe(WorkflowStatus.COMPLETED);
+      expect(result.context.workResults.get('work1')?.result).toBe('result1');
+      expect(result.context.workResults.get('work2')?.result).toBe('result2');
+    });
+
+    it('should work with parallel execution and failFast: false', async () => {
+      const executionOrder: string[] = [];
+
+      const workflow = new Workflow<{ value: number }>({ failFast: false })
+        .parallel([
+          {
+            name: 'p1',
+            execute: async () => {
+              executionOrder.push('p1');
+              throw new Error('Parallel error');
+            },
+          },
+          {
+            name: 'p2',
+            execute: async () => {
+              executionOrder.push('p2');
+              return 'p2 done';
+            },
+          },
+        ])
+        .serial({
+          name: 'after',
+          execute: async () => {
+            executionOrder.push('after');
+            return 'after done';
+          },
+        });
+
+      const result = await workflow.run({ value: 5 });
+
+      expect(result.status).toBe(WorkflowStatus.FAILED);
+      expect(result.error?.message).toBe('Parallel error');
+      expect(executionOrder).toContain('p1');
+      expect(executionOrder).toContain('p2');
+      expect(executionOrder).toContain('after');
+      expect(result.context.workResults.get('after')?.result).toBe('after done');
+    });
+
+    it('should combine failFast: false with silenceError', async () => {
+      const executionOrder: string[] = [];
+
+      const workflow = new Workflow<{ value: number }>({ failFast: false, silenceError: true })
+        .serial({
+          name: 'fail1',
+          execute: async () => {
+            executionOrder.push('fail1');
+            throw new Error('Silenced');
+          },
+        })
+        .serial({
+          name: 'fail2',
+          execute: async () => {
+            executionOrder.push('fail2');
+            throw new Error('Also silenced');
+          },
+        })
+        .serial({
+          name: 'last',
+          execute: async () => {
+            executionOrder.push('last');
+            return 'done';
+          },
+        });
+
+      const result = await workflow.run({ value: 5 });
+
+      // silenceError means errors are silenced, so workflow completes
+      expect(result.status).toBe(WorkflowStatus.COMPLETED);
+      expect(executionOrder).toEqual(['fail1', 'fail2', 'last']);
+    });
+  });
 });

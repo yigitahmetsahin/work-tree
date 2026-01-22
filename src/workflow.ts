@@ -82,6 +82,14 @@ export interface WorkflowOptions {
    * @default false
    */
   silenceError?: boolean;
+
+  /**
+   * Whether to stop execution immediately when a work fails.
+   * - true: Stop on first failure (default)
+   * - false: Continue executing remaining works, fail at the end if any work failed
+   * @default true
+   */
+  failFast?: boolean;
 }
 
 export class Workflow<
@@ -89,10 +97,10 @@ export class Workflow<
   TWorkResults extends Record<string, unknown> = NonNullable<unknown>,
 > {
   private works: IWorkflowWork[] = [];
-  private options: WorkflowOptions;
+  private options: Required<WorkflowOptions>;
 
   constructor(options: WorkflowOptions = {}) {
-    this.options = { silenceError: false, ...options };
+    this.options = { silenceError: false, failFast: true, ...options };
   }
 
   /**
@@ -148,24 +156,44 @@ export class Workflow<
       workResults: new WorkResultsMap<TWorkResults>(),
     };
     const workResults = new Map<keyof TWorkResults, IWorkResult>();
+    const collectedErrors: Error[] = [];
 
     try {
       for (const workGroup of this.works) {
-        if (workGroup.type === 'serial') {
-          await this.executeWork(
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            workGroup.works[0] as IWorkDefinition<string, TData, any, any>,
-            context,
-            workResults
-          );
-        } else {
-          await this.executeParallelWorks(
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            workGroup.works as IWorkDefinition<string, TData, any, any>[],
-            context,
-            workResults
-          );
+        try {
+          if (workGroup.type === 'serial') {
+            await this.executeWork(
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              workGroup.works[0] as IWorkDefinition<string, TData, any, any>,
+              context,
+              workResults
+            );
+          } else {
+            await this.executeParallelWorks(
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              workGroup.works as IWorkDefinition<string, TData, any, any>[],
+              context,
+              workResults
+            );
+          }
+        } catch (error) {
+          const err = error instanceof Error ? error : new Error(String(error));
+          if (this.options.failFast) {
+            throw err;
+          }
+          collectedErrors.push(err);
         }
+      }
+
+      // If failFast is false, check for collected errors
+      if (collectedErrors.length > 0) {
+        return {
+          status: WorkflowStatus.FAILED,
+          context,
+          workResults,
+          totalDuration: Date.now() - startTime,
+          error: collectedErrors[0],
+        };
       }
 
       return {
