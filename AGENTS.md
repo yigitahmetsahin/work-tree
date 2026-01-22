@@ -19,8 +19,17 @@ npm test
 # Run tests in watch mode
 npm run test:watch
 
-# Type check without emitting
+# Lint (ESLint + TypeScript)
 npm run lint
+
+# Fix lint issues
+npm run lint:fix
+
+# Format code (Prettier)
+npm run format
+
+# Check formatting
+npm run format:check
 ```
 
 ## Code Style
@@ -84,6 +93,7 @@ Use [Conventional Commits](https://www.conventionalcommits.org/):
 ```
 
 Examples:
+
 - `feat: add retry mechanism for failed works`
 - `fix: handle null values in parallel execution`
 - `docs: update README with new examples`
@@ -97,10 +107,10 @@ const workflow = new Workflow<TData>()
   .parallel([
     { name: 'parallel1', execute: async (data, results) => value1 },
     { name: 'parallel2', execute: async (data, results) => value2 },
-  ])
+  ]);
 
 // Run workflow
-const result = await workflow.run(initialData)
+const result = await workflow.run(initialData);
 // result.results contains typed results: { step1, parallel1, parallel2 }
 ```
 

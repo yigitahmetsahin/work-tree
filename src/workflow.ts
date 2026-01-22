@@ -12,9 +12,9 @@ import {
 /**
  * Internal implementation of IWorkResultsMap using a Map
  */
-class WorkResultsMap<TWorkResults extends Record<string, unknown>>
-  implements IWorkResultsMap<TWorkResults>
-{
+class WorkResultsMap<
+  TWorkResults extends Record<string, unknown>,
+> implements IWorkResultsMap<TWorkResults> {
   private map = new Map<keyof TWorkResults, unknown>();
 
   get<K extends keyof TWorkResults>(name: K): TWorkResults[K] | undefined {
@@ -76,16 +76,13 @@ export class Workflow<
    * The work name and result type are automatically inferred.
    */
   serial<TName extends string, TResult>(
-    work: IWorkDefinition<TName, TData, TResult, TWorkResults>,
+    work: IWorkDefinition<TName, TData, TResult, TWorkResults>
   ): Workflow<TData, TWorkResults & { [K in TName]: TResult }> {
     this.works.push({
       type: 'serial',
       works: [work],
     });
-    return this as unknown as Workflow<
-      TData,
-      TWorkResults & { [K in TName]: TResult }
-    >;
+    return this as unknown as Workflow<TData, TWorkResults & { [K in TName]: TResult }>;
   }
 
   /**
@@ -93,23 +90,13 @@ export class Workflow<
    * All work names and result types are automatically inferred.
    */
   parallel<
-    const TParallelWorks extends readonly IWorkDefinition<
-      string,
-      TData,
-      unknown,
-      TWorkResults
-    >[],
-  >(
-    works: TParallelWorks,
-  ): Workflow<TData, TWorkResults & ParallelWorksToRecord<TParallelWorks>> {
+    const TParallelWorks extends readonly IWorkDefinition<string, TData, unknown, TWorkResults>[],
+  >(works: TParallelWorks): Workflow<TData, TWorkResults & ParallelWorksToRecord<TParallelWorks>> {
     this.works.push({
       type: 'parallel',
       works: works as unknown as IWorkDefinition<string, TData, unknown, TWorkResults>[],
     });
-    return this as unknown as Workflow<
-      TData,
-      TWorkResults & ParallelWorksToRecord<TParallelWorks>
-    >;
+    return this as unknown as Workflow<TData, TWorkResults & ParallelWorksToRecord<TParallelWorks>>;
   }
 
   /**
@@ -153,10 +140,9 @@ export class Workflow<
    * Execute a single work
    */
   private async executeWork(
-     
     work: IWorkDefinition<string, TData, any, any>,
     context: IWorkflowContext<TData, TWorkResults>,
-    workResults: Map<keyof TWorkResults, IWorkResult>,
+    workResults: Map<keyof TWorkResults, IWorkResult>
   ): Promise<void> {
     const workStartTime = Date.now();
 
@@ -206,10 +192,9 @@ export class Workflow<
    * Execute multiple works in parallel
    */
   private async executeParallelWorks(
-     
     works: IWorkDefinition<string, TData, any, any>[],
     context: IWorkflowContext<TData, TWorkResults>,
-    workResults: Map<keyof TWorkResults, IWorkResult>,
+    workResults: Map<keyof TWorkResults, IWorkResult>
   ): Promise<void> {
     const promises = works.map(async (work) => {
       const workStartTime = Date.now();
@@ -238,7 +223,7 @@ export class Workflow<
     const results = await Promise.all(promises);
 
     // Process results and check for errors
-     
+
     const errors: { work: IWorkDefinition<string, TData, any, any>; error: Error }[] = [];
 
     for (const result of results) {
@@ -256,10 +241,7 @@ export class Workflow<
         });
         errors.push({ work: result.work, error: result.error });
       } else {
-        context.workResults.set(
-          result.work.name as keyof TWorkResults,
-          result.result,
-        );
+        context.workResults.set(result.work.name as keyof TWorkResults, result.result);
         workResults.set(result.work.name as keyof TWorkResults, {
           status: WorkStatus.COMPLETED,
           result: result.result,
@@ -294,7 +276,7 @@ type ParallelWorksToRecord<
   [K in T[number]['name']]: Extract<
     T[number],
     { name: K }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   > extends IWorkDefinition<string, any, infer R, any>
     ? R
     : never;

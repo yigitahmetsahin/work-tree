@@ -54,7 +54,7 @@ const workflow = new Workflow<{ userId: string }>()
     name: 'process',
     execute: async (ctx) => {
       // ✅ Types are automatically inferred!
-      const orders = ctx.workResults.get('fetchOrders');   // { id: number }[] | undefined
+      const orders = ctx.workResults.get('fetchOrders'); // { id: number }[] | undefined
       const profile = ctx.workResults.get('fetchProfile'); // { name: string; email: string } | undefined
       return { orderCount: orders?.length ?? 0, userName: profile?.name };
     },
@@ -84,12 +84,14 @@ Add a serial (sequential) work to the workflow.
 
 ```typescript
 workflow.serial({
-  name: 'workName',           // Unique name for this work
-  execute: async (ctx) => {   // Async function that performs the work
-    return result;            // Return value becomes available to subsequent works
+  name: 'workName', // Unique name for this work
+  execute: async (ctx) => {
+    // Async function that performs the work
+    return result; // Return value becomes available to subsequent works
   },
-  shouldRun: (ctx) => true,   // Optional: condition to skip this work
-  onError: (error, ctx) => {  // Optional: error handler
+  shouldRun: (ctx) => true, // Optional: condition to skip this work
+  onError: (error, ctx) => {
+    // Optional: error handler
     console.error(error);
   },
 });
@@ -119,14 +121,14 @@ const result = await workflow.run({ userId: '123' });
 
 ```typescript
 interface IWorkflowResult {
-  status: WorkflowStatus;        // 'completed' | 'failed'
+  status: WorkflowStatus; // 'completed' | 'failed'
   context: {
-    data: TData;                 // Initial data passed to run()
+    data: TData; // Initial data passed to run()
     workResults: IWorkResultsMap; // Type-safe map of work results
   };
   workResults: Map<string, IWorkResult>; // Detailed results per work
-  totalDuration: number;         // Total execution time in ms
-  error?: Error;                 // Error if workflow failed
+  totalDuration: number; // Total execution time in ms
+  error?: Error; // Error if workflow failed
 }
 ```
 
@@ -283,6 +285,7 @@ npm run lint
 5. Open a Pull Request
 
 This project uses [Release Please](https://github.com/googleapis/release-please) for automated releases. When your PR is merged:
+
 - A release PR is automatically created/updated
 - Merging the release PR publishes to npm with provenance
 

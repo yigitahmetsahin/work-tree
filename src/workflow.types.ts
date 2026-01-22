@@ -67,17 +67,15 @@ export interface IWorkDefinition<
   /** Unique name for the work */
   name: TName;
   /** Execute function - receives context and returns result */
-  execute: (
-    context: IWorkflowContext<TData, TAvailableWorkResults>,
-  ) => Promise<TResult>;
+  execute: (context: IWorkflowContext<TData, TAvailableWorkResults>) => Promise<TResult>;
   /** Optional: condition to determine if work should run */
   shouldRun?: (
-    context: IWorkflowContext<TData, TAvailableWorkResults>,
+    context: IWorkflowContext<TData, TAvailableWorkResults>
   ) => boolean | Promise<boolean>;
   /** Optional: called when work fails */
   onError?: (
     error: Error,
-    context: IWorkflowContext<TData, TAvailableWorkResults>,
+    context: IWorkflowContext<TData, TAvailableWorkResults>
   ) => void | Promise<void>;
 }
 
@@ -86,7 +84,7 @@ export interface IWorkDefinition<
  */
 export interface IWorkflowWork {
   type: 'serial' | 'parallel';
-   
+
   works: IWorkDefinition<string, any, any, any>[];
 }
 
