@@ -3,7 +3,9 @@
 A simple, extensible TypeScript workflow engine supporting serial and parallel work execution with full type inference.
 
 [![npm version](https://badge.fury.io/js/%40yigitahmetsahin%2Fworkflow-ts.svg)](https://www.npmjs.com/package/@yigitahmetsahin/workflow-ts)
+[![CI](https://github.com/yigitahmetsahin/workflow-ts/actions/workflows/ci.yml/badge.svg)](https://github.com/yigitahmetsahin/workflow-ts/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.3+-blue.svg)](https://www.typescriptlang.org/)
 
 ## Features
 
@@ -249,6 +251,40 @@ Time ─────────────────────────
                                     │   (serial)   │
                                     └──────────────┘
 ```
+
+## Development
+
+```bash
+# Install dependencies
+npm install
+
+# Run tests
+npm test
+
+# Run tests in watch mode
+npm run test:watch
+
+# Build the library
+npm run build
+
+# Type check
+npm run lint
+```
+
+## Contributing
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feat/amazing-feature`)
+3. Commit your changes using [Conventional Commits](https://www.conventionalcommits.org/):
+   - `feat:` for new features (minor version bump)
+   - `fix:` for bug fixes (patch version bump)
+   - `feat!:` or `BREAKING CHANGE:` for breaking changes (major version bump)
+4. Push to the branch (`git push origin feat/amazing-feature`)
+5. Open a Pull Request
+
+This project uses [Release Please](https://github.com/googleapis/release-please) for automated releases. When your PR is merged:
+- A release PR is automatically created/updated
+- Merging the release PR publishes to npm with provenance
 
 ## License
 

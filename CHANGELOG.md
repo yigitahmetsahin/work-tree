@@ -2,11 +2,9 @@
 
 All notable changes to this project will be documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+This changelog is automatically managed by [Release Please](https://github.com/googleapis/release-please).
 
 ## [1.1.0](https://github.com/yigitahmetsahin/workflow-ts/compare/v1.0.6...v1.1.0) (2026-01-22)
-
 
 ### Features
 
@@ -15,66 +13,64 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * use Node 24 and trigger release on tag push ([2e0a385](https://github.com/yigitahmetsahin/workflow-ts/commit/2e0a3854a77377f06968d9e29852c6e4ec02c100))
 * use release-please for automated releases ([37a66ed](https://github.com/yigitahmetsahin/workflow-ts/commit/37a66ed50d6116cf2eb790c71d7f379e7ffad638))
 
-
 ### Bug Fixes
 
 * revert to simpler auto-release without bot ([11987af](https://github.com/yigitahmetsahin/workflow-ts/commit/11987af9b3ef903d51e42b280f79df9e40dbc740))
 
-## [Unreleased]
+## [1.0.6](https://github.com/yigitahmetsahin/workflow-ts/compare/v1.0.5...v1.0.6) (2026-01-22)
 
-## [1.0.6] - 2026-01-22
+### Bug Fixes
 
-### Fixed
-- Update npm to latest in CI for OIDC trusted publishing support
+* update npm to latest in CI for OIDC trusted publishing support
 
-## [1.0.5] - 2026-01-22
+## [1.0.5](https://github.com/yigitahmetsahin/workflow-ts/compare/v1.0.4...v1.0.5) (2026-01-22)
 
-### Fixed
-- Fixed OIDC workflow - removed registry-url to allow automatic OIDC auth
+### Bug Fixes
 
-## [1.0.4] - 2026-01-22
+* fixed OIDC workflow - removed registry-url to allow automatic OIDC auth
 
-### Fixed
-- Added NODE_AUTH_TOKEN for npm publish authentication
+## [1.0.4](https://github.com/yigitahmetsahin/workflow-ts/compare/v1.0.3...v1.0.4) (2026-01-22)
 
-## [1.0.3] - 2026-01-22
+### Bug Fixes
 
-### Fixed
-- Updated release workflow for npm OIDC publishing with provenance
+* added NODE_AUTH_TOKEN for npm publish authentication
 
-## [1.0.2] - 2026-01-22
+## [1.0.3](https://github.com/yigitahmetsahin/workflow-ts/compare/v1.0.2...v1.0.3) (2026-01-22)
 
-### Fixed
-- Fixed flaky timing tests in CI by adding tolerance for timer resolution variance
+### Bug Fixes
 
-## [1.0.1] - 2026-01-22
+* updated release workflow for npm OIDC publishing with provenance
 
-### Added
-- CHANGELOG.md for tracking version history
-- GitHub Actions CI workflow for automated testing
-- GitHub Actions release workflow with npm Trusted Publishers (OIDC)
-- Comprehensive unit tests with Vitest
+## [1.0.2](https://github.com/yigitahmetsahin/workflow-ts/compare/v1.0.1...v1.0.2) (2026-01-22)
 
-### Changed
-- Restructured project as npm library with proper exports (ESM + CJS)
+### Bug Fixes
 
-## [1.0.0] - 2026-01-22
+* fixed flaky timing tests in CI by adding tolerance for timer resolution variance
 
-### Added
-- Initial release
-- `Workflow` class with fluent API for building workflows
-- Serial work execution with `.serial()` method
-- Parallel work execution with `.parallel()` method
-- Full TypeScript type inference for work names and results
-- Conditional execution with `shouldRun` option
-- Error handling with `onError` callbacks
-- Execution timing and duration tracking
-- `WorkflowStatus` and `WorkStatus` enums
-- Type-safe `IWorkResultsMap` for accessing work results
+## [1.0.1](https://github.com/yigitahmetsahin/workflow-ts/compare/v1.0.0...v1.0.1) (2026-01-22)
 
-[Unreleased]: https://github.com/yigitahmetsahin/workflow-ts/compare/v1.0.4...HEAD
-[1.0.4]: https://github.com/yigitahmetsahin/workflow-ts/compare/v1.0.3...v1.0.4
-[1.0.3]: https://github.com/yigitahmetsahin/workflow-ts/compare/v1.0.2...v1.0.3
-[1.0.2]: https://github.com/yigitahmetsahin/workflow-ts/compare/v1.0.1...v1.0.2
-[1.0.1]: https://github.com/yigitahmetsahin/workflow-ts/compare/v1.0.0...v1.0.1
-[1.0.0]: https://github.com/yigitahmetsahin/workflow-ts/releases/tag/v1.0.0
+### Features
+
+* GitHub Actions CI workflow for automated testing
+* GitHub Actions release workflow with npm Trusted Publishers (OIDC)
+* comprehensive unit tests with Vitest
+
+### Miscellaneous
+
+* added CHANGELOG.md for tracking version history
+* restructured project as npm library with proper exports (ESM + CJS)
+
+## [1.0.0](https://github.com/yigitahmetsahin/workflow-ts/releases/tag/v1.0.0) (2026-01-22)
+
+### Features
+
+* initial release
+* `Workflow` class with fluent API for building workflows
+* serial work execution with `.serial()` method
+* parallel work execution with `.parallel()` method
+* full TypeScript type inference for work names and results
+* conditional execution with `shouldRun` option
+* error handling with `onError` callbacks
+* execution timing and duration tracking
+* `WorkflowStatus` and `WorkStatus` enums
+* type-safe `IWorkResultsMap` for accessing work results
