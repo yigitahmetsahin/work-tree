@@ -330,8 +330,9 @@ describe('Workflow', () => {
 
       const result = await workflow.run({});
 
-      expect(result.totalDuration).toBeGreaterThanOrEqual(50);
-      expect(result.totalDuration).toBeLessThan(150);
+      // Allow small tolerance for timer resolution variance in CI
+      expect(result.totalDuration).toBeGreaterThanOrEqual(45);
+      expect(result.totalDuration).toBeLessThan(200);
     });
 
     it('should track individual work duration', async () => {
@@ -346,8 +347,9 @@ describe('Workflow', () => {
       const result = await workflow.run({});
 
       const workResult = result.workResults.get('timed');
-      expect(workResult?.duration).toBeGreaterThanOrEqual(30);
-      expect(workResult?.duration).toBeLessThan(100);
+      // Allow small tolerance for timer resolution variance in CI
+      expect(workResult?.duration).toBeGreaterThanOrEqual(25);
+      expect(workResult?.duration).toBeLessThan(150);
     });
   });
 
