@@ -45,6 +45,7 @@ npm run format:check
 ```
 src/
 ├── index.ts           # Public exports
+├── work.ts            # Work class for standalone work definitions
 ├── workflow.ts        # Core Workflow class implementation
 ├── workflow.types.ts  # Type definitions
 └── workflow.test.ts   # Unit tests (Vitest)
@@ -101,13 +102,25 @@ Examples:
 ## Key Types
 
 ```typescript
-// Core workflow creation
+// Option 1: Inline work definitions
 const workflow = new Workflow<TData>()
   .serial({ name: 'step1', execute: async (ctx) => value })
   .parallel([
     { name: 'parallel1', execute: async (ctx) => value1 },
     { name: 'parallel2', execute: async (ctx) => value2 },
   ]);
+
+// Option 2: Standalone Work instances (reusable)
+const myWork = new Work({
+  name: 'myWork',
+  execute: async (ctx) => value,
+  shouldRun: (ctx) => true, // optional
+  onError: (error, ctx) => {}, // optional
+});
+
+const workflow2 = new Workflow<TData>()
+  .serial(myWork) // Work instance
+  .parallel([work1, work2]); // Work instances or inline definitions can be mixed
 
 // Run workflow
 const result = await workflow.run(initialData);

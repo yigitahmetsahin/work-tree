@@ -11,6 +11,7 @@ npx tsx examples/basic.ts
 npx tsx examples/parallel.ts
 npx tsx examples/conditional.ts
 npx tsx examples/error-handling.ts
+npx tsx examples/work-class.ts
 ```
 
 ## Key API Pattern
@@ -70,3 +71,13 @@ Error handling demonstrating:
 - Workflow failure states
 - Accessing error details via `IWorkResult.error`
 - Error recovery patterns
+
+### 5. Work Class (`work-class.ts`)
+
+Standalone work definitions demonstrating:
+
+- Defining reusable `Work` instances
+- Using Work instances in `.serial()` and `.parallel()`
+- Mixing Work instances with inline definitions
+- Reusing the same Work across multiple workflows
+- Conditional execution with Work class

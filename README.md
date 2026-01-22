@@ -11,6 +11,7 @@ A simple, extensible TypeScript workflow engine supporting serial and parallel w
 
 - 🔄 **Serial & Parallel Execution** - Chain work items sequentially or run them concurrently
 - 🎯 **Full Type Inference** - Work names and result types are automatically inferred
+- 🧩 **Standalone Work Definitions** - Define works as reusable `Work` instances
 - ⏭️ **Conditional Execution** - Skip work items based on runtime conditions
 - 🛡️ **Error Handling** - Built-in error callbacks and workflow failure states
 - 📊 **Execution Tracking** - Duration tracking for individual works and total workflow
@@ -33,8 +34,9 @@ pnpm add @yigitahmetsahin/workflow-ts
 ## Quick Start
 
 ```typescript
-import { Workflow, WorkflowStatus } from '@yigitahmetsahin/workflow-ts';
+import { Workflow, Work, WorkflowStatus } from '@yigitahmetsahin/workflow-ts';
 
+// Option 1: Define works inline
 const workflow = new Workflow<{ userId: string }>()
   .serial({
     name: 'validate',
@@ -60,6 +62,21 @@ const workflow = new Workflow<{ userId: string }>()
       return { orderCount: orders?.length ?? 0, userName: profile?.name };
     },
   });
+
+// Option 2: Define works as reusable Work instances
+const validateUser = new Work({
+  name: 'validate',
+  execute: async (ctx) => ctx.data.userId.length > 0,
+});
+
+const fetchOrders = new Work({
+  name: 'fetchOrders',
+  execute: async (ctx) => [{ id: 1 }, { id: 2 }],
+});
+
+const workflow2 = new Workflow<{ userId: string }>()
+  .serial(validateUser)
+  .parallel([fetchOrders]);
 
 const result = await workflow.run({ userId: 'user-123' });
 
@@ -108,6 +125,62 @@ workflow.parallel([
   { name: 'task2', execute: async (ctx) => result2 },
   { name: 'task3', execute: async (ctx) => result3 },
 ]);
+```
+
+### `Work` Class
+
+Define standalone, reusable work units using the `Work` class:
+
+```typescript
+import { Work, Workflow } from '@yigitahmetsahin/workflow-ts';
+
+// Define works as standalone units
+const fetchUser = new Work({
+  name: 'fetchUser',
+  execute: async (ctx) => {
+    const response = await fetch(`/api/users/${ctx.data.userId}`);
+    return response.json();
+  },
+});
+
+const fetchOrders = new Work({
+  name: 'fetchOrders',
+  execute: async (ctx) => {
+    const response = await fetch(`/api/orders?userId=${ctx.data.userId}`);
+    return response.json();
+  },
+});
+
+// Use them in workflows
+const workflow = new Workflow<{ userId: string }>()
+  .serial(fetchUser)
+  .parallel([fetchOrders, anotherWork]);
+```
+
+Works can be mixed with inline definitions:
+
+```typescript
+workflow
+  .serial(fetchUser) // Work instance
+  .parallel([
+    fetchOrders, // Work instance
+    {
+      // Inline definition
+      name: 'fetchProfile',
+      execute: async (ctx) => ({ name: 'John' }),
+    },
+  ]);
+```
+
+The `Work` class supports all the same options as inline definitions:
+
+```typescript
+const conditionalWork = new Work({
+  name: 'conditionalTask',
+  execute: async (ctx) => 'result',
+  shouldRun: (ctx) => ctx.data.enabled, // Optional condition
+  onError: (error, ctx) => console.error(error), // Optional error handler
+});
 ```
 
 ### `.run(initialData)`

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { Workflow } from './workflow';
+import { Work } from './work';
 import { WorkflowStatus, WorkStatus } from './workflow.types';
 
 describe('Workflow', () => {
@@ -454,6 +455,152 @@ describe('Workflow', () => {
 
       expect(result.context.workResults.get('first')?.result).toBe('modified value');
       expect(result.context.workResults.get('second')?.result).toBe('modified value');
+    });
+  });
+
+  describe('Work class', () => {
+    it('should execute a serial work defined with Work class', async () => {
+      const doubleWork = new Work({
+        name: 'double',
+        execute: async (ctx: { data: { value: number } }) => ctx.data.value * 2,
+      });
+
+      const workflow = new Workflow<{ value: number }>().serial(doubleWork);
+
+      const result = await workflow.run({ value: 5 });
+
+      expect(result.status).toBe(WorkflowStatus.COMPLETED);
+      expect(result.context.workResults.get('double')?.result).toBe(10);
+    });
+
+    it('should execute parallel works defined with Work class', async () => {
+      const addWork = new Work({
+        name: 'add',
+        execute: async (ctx: { data: { base: number } }) => ctx.data.base + 10,
+      });
+
+      const multiplyWork = new Work({
+        name: 'multiply',
+        execute: async (ctx: { data: { base: number } }) => ctx.data.base * 10,
+      });
+
+      const workflow = new Workflow<{ base: number }>().parallel([addWork, multiplyWork]);
+
+      const result = await workflow.run({ base: 5 });
+
+      expect(result.status).toBe(WorkflowStatus.COMPLETED);
+      expect(result.context.workResults.get('add')?.result).toBe(15);
+      expect(result.context.workResults.get('multiply')?.result).toBe(50);
+    });
+
+    it('should mix Work instances and inline definitions', async () => {
+      const validateWork = new Work({
+        name: 'validate',
+        execute: async (ctx: { data: { input: number } }) => ctx.data.input > 0,
+      });
+
+      const workflow = new Workflow<{ input: number }>()
+        .serial(validateWork)
+        .parallel([
+          new Work({
+            name: 'double',
+            execute: async (ctx) => ctx.data.input * 2,
+          }),
+          {
+            name: 'triple',
+            execute: async (ctx) => ctx.data.input * 3,
+          },
+        ])
+        .serial({
+          name: 'sum',
+          execute: async (ctx) => {
+            const doubled = ctx.workResults.get('double')!.result!;
+            const tripled = ctx.workResults.get('triple')!.result!;
+            return doubled + tripled;
+          },
+        });
+
+      const result = await workflow.run({ input: 10 });
+
+      expect(result.status).toBe(WorkflowStatus.COMPLETED);
+      expect(result.context.workResults.get('validate')?.result).toBe(true);
+      expect(result.context.workResults.get('double')?.result).toBe(20);
+      expect(result.context.workResults.get('triple')?.result).toBe(30);
+      expect(result.context.workResults.get('sum')?.result).toBe(50);
+    });
+
+    it('should support shouldRun with Work class', async () => {
+      const executeFn = vi.fn().mockResolvedValue('executed');
+
+      const conditionalWork = new Work({
+        name: 'conditional',
+        shouldRun: (ctx: { data: { skip: boolean } }) => !ctx.data.skip,
+        execute: executeFn,
+      });
+
+      const workflow = new Workflow<{ skip: boolean }>().serial(conditionalWork);
+
+      const result = await workflow.run({ skip: true });
+
+      expect(result.status).toBe(WorkflowStatus.COMPLETED);
+      expect(executeFn).not.toHaveBeenCalled();
+      expect(result.workResults.get('conditional')?.status).toBe(WorkStatus.SKIPPED);
+    });
+
+    it('should support onError with Work class', async () => {
+      const onErrorFn = vi.fn();
+
+      const failingWork = new Work({
+        name: 'failing',
+        execute: async () => {
+          throw new Error('Test error');
+        },
+        onError: onErrorFn,
+      });
+
+      const workflow = new Workflow<{ data: string }>().serial(failingWork);
+
+      await workflow.run({ data: 'test' });
+
+      expect(onErrorFn).toHaveBeenCalledTimes(1);
+      expect(onErrorFn).toHaveBeenCalledWith(
+        expect.any(Error),
+        expect.objectContaining({ data: { data: 'test' } })
+      );
+    });
+
+    it('should expose work properties via getters', () => {
+      const executeFn = vi.fn();
+      const shouldRunFn = vi.fn();
+      const onErrorFn = vi.fn();
+
+      const work = new Work({
+        name: 'testWork',
+        execute: executeFn,
+        shouldRun: shouldRunFn,
+        onError: onErrorFn,
+      });
+
+      expect(work.name).toBe('testWork');
+      expect(work.execute).toBe(executeFn);
+      expect(work.shouldRun).toBe(shouldRunFn);
+      expect(work.onError).toBe(onErrorFn);
+    });
+
+    it('should allow reusing Work instances across multiple workflows', async () => {
+      const sharedWork = new Work({
+        name: 'shared',
+        execute: async (ctx: { data: { value: number } }) => ctx.data.value * 2,
+      });
+
+      const workflow1 = new Workflow<{ value: number }>().serial(sharedWork);
+      const workflow2 = new Workflow<{ value: number }>().serial(sharedWork);
+
+      const result1 = await workflow1.run({ value: 5 });
+      const result2 = await workflow2.run({ value: 10 });
+
+      expect(result1.context.workResults.get('shared')?.result).toBe(10);
+      expect(result2.context.workResults.get('shared')?.result).toBe(20);
     });
   });
 });

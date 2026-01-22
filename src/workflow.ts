@@ -8,6 +8,7 @@ import {
   IWorkResult,
   WorkStatus,
 } from './workflow.types';
+import { WorkInput, getWorkDefinition } from './work';
 
 /**
  * Internal implementation of IWorkResultsMap using a Map
@@ -79,28 +80,32 @@ export class Workflow<
 
   /**
    * Add a serial work to the workflow.
+   * Accepts either an inline work definition or a Work instance.
    * The work name and result type are automatically inferred.
    */
   serial<TName extends string, TResult>(
-    work: IWorkDefinition<TName, TData, TResult, TWorkResults>
+    work: WorkInput<TName, TData, TResult, TWorkResults>
   ): Workflow<TData, TWorkResults & { [K in TName]: TResult }> {
     this.works.push({
       type: 'serial',
-      works: [work],
+      works: [getWorkDefinition(work)],
     });
     return this as unknown as Workflow<TData, TWorkResults & { [K in TName]: TResult }>;
   }
 
   /**
    * Add parallel works to the workflow.
+   * Accepts either inline work definitions or Work instances.
    * All work names and result types are automatically inferred.
    */
-  parallel<
-    const TParallelWorks extends readonly IWorkDefinition<string, TData, unknown, TWorkResults>[],
-  >(works: TParallelWorks): Workflow<TData, TWorkResults & ParallelWorksToRecord<TParallelWorks>> {
+  parallel<const TParallelWorks extends readonly WorkInput<string, TData, unknown, TWorkResults>[]>(
+    works: TParallelWorks
+  ): Workflow<TData, TWorkResults & ParallelWorksToRecord<TParallelWorks>> {
     this.works.push({
       type: 'parallel',
-      works: works as unknown as IWorkDefinition<string, TData, unknown, TWorkResults>[],
+      works: works.map((w) =>
+        getWorkDefinition(w)
+      ) as unknown as IWorkDefinition<string, TData, unknown, TWorkResults>[],
     });
     return this as unknown as Workflow<TData, TWorkResults & ParallelWorksToRecord<TParallelWorks>>;
   }
@@ -285,8 +290,8 @@ export class Workflow<
 }
 
 /**
- * Helper type to extract work results from parallel works array
- * Uses Extract to preserve the specific type for each work name
+ * Helper type to extract work results from parallel works array.
+ * Since Work implements IWorkDefinition, we can use Extract directly.
  */
 type ParallelWorksToRecord<
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
