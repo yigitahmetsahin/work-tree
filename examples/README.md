@@ -13,6 +13,28 @@ npx tsx examples/conditional.ts
 npx tsx examples/error-handling.ts
 ```
 
+## Key API Pattern
+
+All examples use the `IWorkResult` pattern for accessing work results:
+
+```typescript
+// workResults.get() returns IWorkResult with status, result, duration
+const userResult = ctx.workResults.get('fetchUser');
+
+// Access the actual value via .result
+const user = userResult.result;
+
+// Or directly chain
+const user = ctx.workResults.get('fetchUser').result;
+
+// Check execution status
+if (userResult.status === WorkStatus.COMPLETED) {
+  console.log('User fetched:', userResult.result);
+} else if (userResult.status === WorkStatus.SKIPPED) {
+  console.log('User fetch was skipped');
+}
+```
+
 ## Examples Overview
 
 ### 1. Basic (`basic.ts`)
@@ -20,7 +42,7 @@ npx tsx examples/error-handling.ts
 Simple serial workflow demonstrating:
 
 - Sequential task execution
-- Accessing results from previous steps
+- Accessing results from previous steps via `.result`
 - Type-safe result access
 
 ### 2. Parallel (`parallel.ts`)
@@ -36,6 +58,7 @@ Concurrent execution demonstrating:
 Skip-based workflow demonstrating:
 
 - `shouldRun` condition for optional steps
+- Checking work status (completed vs skipped)
 - Dynamic workflow paths based on input
 - Multiple scenarios with same workflow
 
@@ -45,4 +68,5 @@ Error handling demonstrating:
 
 - `onError` callbacks for logging/alerting
 - Workflow failure states
+- Accessing error details via `IWorkResult.error`
 - Error recovery patterns

@@ -54,8 +54,9 @@ const workflow = new Workflow<{ userId: string }>()
     name: 'process',
     execute: async (ctx) => {
       // ✅ Types are automatically inferred!
-      const orders = ctx.workResults.get('fetchOrders'); // { id: number }[] | undefined
-      const profile = ctx.workResults.get('fetchProfile'); // { name: string; email: string } | undefined
+      // workResults.get() returns IWorkResult with status, result, duration
+      const orders = ctx.workResults.get('fetchOrders').result; // { id: number }[]
+      const profile = ctx.workResults.get('fetchProfile').result; // { name: string; email: string }
       return { orderCount: orders?.length ?? 0, userName: profile?.name };
     },
   });
@@ -64,7 +65,7 @@ const result = await workflow.run({ userId: 'user-123' });
 
 if (result.status === WorkflowStatus.COMPLETED) {
   console.log('Workflow completed in', result.totalDuration, 'ms');
-  console.log('Final result:', result.context.workResults.get('process'));
+  console.log('Final result:', result.context.workResults.get('process').result);
 }
 ```
 
@@ -130,7 +131,36 @@ interface IWorkflowResult {
   totalDuration: number; // Total execution time in ms
   error?: Error; // Error if workflow failed
 }
+
+// Each work result contains execution details
+interface IWorkResult<T> {
+  status: WorkStatus; // 'completed' | 'failed' | 'skipped'
+  result?: T; // The return value from execute()
+  error?: Error; // Error if work failed
+  duration: number; // Execution time in ms
+}
 ```
+
+### Accessing Work Results
+
+`ctx.workResults.get()` returns an `IWorkResult` object, not the raw value:
+
+```typescript
+// Get the full work result with metadata
+const workResult = ctx.workResults.get('fetchUser');
+console.log(workResult.status); // 'completed' | 'failed' | 'skipped'
+console.log(workResult.duration); // execution time in ms
+
+// Get just the return value
+const user = ctx.workResults.get('fetchUser').result;
+
+// Check status before accessing result
+if (workResult.status === WorkStatus.COMPLETED) {
+  console.log('User:', workResult.result);
+}
+```
+
+> **Note:** `workResults.get()` throws an error if called for a work that hasn't executed yet. Use `workResults.has()` to check if a result exists.
 
 ## Conditional Execution
 
@@ -145,6 +175,17 @@ workflow.serial({
     return { sent: true };
   },
 });
+```
+
+Skipped works are still accessible via `workResults.get()` with `status: 'skipped'`:
+
+```typescript
+const emailResult = ctx.workResults.get('sendEmail');
+if (emailResult.status === WorkStatus.SKIPPED) {
+  console.log('Email was skipped');
+} else if (emailResult.status === WorkStatus.COMPLETED) {
+  console.log('Email sent:', emailResult.result);
+}
 ```
 
 ## Error Handling

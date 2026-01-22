@@ -103,15 +103,20 @@ Examples:
 ```typescript
 // Core workflow creation
 const workflow = new Workflow<TData>()
-  .serial({ name: 'step1', execute: async (data, results) => value })
+  .serial({ name: 'step1', execute: async (ctx) => value })
   .parallel([
-    { name: 'parallel1', execute: async (data, results) => value1 },
-    { name: 'parallel2', execute: async (data, results) => value2 },
+    { name: 'parallel1', execute: async (ctx) => value1 },
+    { name: 'parallel2', execute: async (ctx) => value2 },
   ]);
 
 // Run workflow
 const result = await workflow.run(initialData);
-// result.results contains typed results: { step1, parallel1, parallel2 }
+
+// Access results - workResults.get() returns IWorkResult, not raw value
+const step1Result = result.context.workResults.get('step1');
+console.log(step1Result.status); // 'completed' | 'failed' | 'skipped'
+console.log(step1Result.result); // the actual return value
+console.log(step1Result.duration); // execution time in ms
 ```
 
 ## Important Notes
