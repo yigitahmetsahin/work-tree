@@ -1,7 +1,7 @@
 /**
  * Conditional workflow example - Skip steps based on conditions
  */
-import { Workflow, WorkflowStatus } from '@yigitahmetsahin/workflow-ts';
+import { Workflow, WorkflowStatus } from '../src';
 
 interface NotificationData {
   userId: string;
@@ -71,7 +71,7 @@ async function main() {
     sendSms: false,
     sendPush: false,
   });
-  console.log('Result:', result.results.logNotifications);
+  console.log('Result:', result.context.workResults.get('logNotifications'));
 
   console.log('\n=== Scenario 2: All notifications ===\n');
   result = await workflow.run({
@@ -80,7 +80,7 @@ async function main() {
     sendSms: true,
     sendPush: true,
   });
-  console.log('Result:', result.results.logNotifications);
+  console.log('Result:', result.context.workResults.get('logNotifications'));
 
   console.log('\n=== Scenario 3: No notifications ===\n');
   result = await workflow.run({
@@ -89,7 +89,7 @@ async function main() {
     sendSms: false,
     sendPush: false,
   });
-  console.log('Result:', result.results.logNotifications);
+  console.log('Result:', result.context.workResults.get('logNotifications'));
 }
 
 main().catch(console.error);

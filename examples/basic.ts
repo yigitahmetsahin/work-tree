@@ -1,7 +1,7 @@
 /**
  * Basic workflow example - Simple serial execution
  */
-import { Workflow, WorkflowStatus } from '@yigitahmetsahin/workflow-ts';
+import { Workflow, WorkflowStatus } from '../src';
 
 interface UserData {
   userId: string;
@@ -34,8 +34,8 @@ async function main() {
     console.log('\n✅ Workflow completed!');
     console.log(`Total duration: ${result.totalDuration}ms`);
     console.log('Results:', {
-      user: result.results.fetchUser,
-      email: result.results.sendWelcomeEmail,
+      user: result.context.workResults.get('fetchUser'),
+      email: result.context.workResults.get('sendWelcomeEmail'),
     });
   }
 }

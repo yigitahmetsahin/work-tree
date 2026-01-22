@@ -1,7 +1,7 @@
 /**
  * Parallel workflow example - Concurrent execution
  */
-import { Workflow, WorkflowStatus } from '@yigitahmetsahin/workflow-ts';
+import { Workflow, WorkflowStatus } from '../src';
 
 interface OrderData {
   orderId: string;
@@ -38,7 +38,7 @@ async function main() {
       },
       {
         name: 'calculateShipping',
-        execute: async (ctx) => {
+        execute: async () => {
           console.log('Calculating shipping...');
           await new Promise((r) => setTimeout(r, 100));
           return { cost: 9.99, estimatedDays: 3 };
@@ -65,7 +65,6 @@ async function main() {
     });
 
   console.log('Starting order workflow...\n');
-  const start = Date.now();
 
   const result = await workflow.run({ orderId: 'ORD-001', userId: 'user-456' });
 
@@ -73,7 +72,7 @@ async function main() {
     console.log('\n✅ Order processed!');
     console.log(`Total duration: ${result.totalDuration}ms`);
     console.log(`(Parallel tasks saved ~${200 + 150 + 100 - 200}ms by running concurrently)`);
-    console.log('\nFinal result:', result.results.processOrder);
+    console.log('\nFinal result:', result.context.workResults.get('processOrder'));
   }
 }
 

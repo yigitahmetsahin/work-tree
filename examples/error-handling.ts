@@ -1,7 +1,7 @@
 /**
  * Error handling workflow example
  */
-import { Workflow, WorkflowStatus } from '@yigitahmetsahin/workflow-ts';
+import { Workflow, WorkflowStatus } from '../src';
 
 interface PaymentData {
   amount: number;
@@ -19,7 +19,7 @@ async function main() {
         }
         return { valid: true, type: 'visa' };
       },
-      onError: async (error, ctx) => {
+      onError: async (error) => {
         console.error(`❌ Card validation failed: ${error.message}`);
         // Log to monitoring service, send alert, etc.
       },
@@ -37,7 +37,7 @@ async function main() {
 
         return { transactionId: 'TXN-' + Date.now(), status: 'completed' };
       },
-      onError: async (error, ctx) => {
+      onError: async (error) => {
         console.error(`❌ Payment failed: ${error.message}`);
         console.log('  → Would retry or notify support here');
       },
@@ -57,7 +57,7 @@ async function main() {
 
   if (result.status === WorkflowStatus.COMPLETED) {
     console.log('\n✅ Payment successful!');
-    console.log('Transaction:', result.results.processPayment);
+    console.log('Transaction:', result.context.workResults.get('processPayment'));
   } else {
     console.log('\n❌ Payment failed:', result.error?.message);
   }

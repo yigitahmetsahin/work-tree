@@ -4,14 +4,7 @@ This folder contains practical examples of using `@yigitahmetsahin/workflow-ts`.
 
 ## Running Examples
 
-First, build the library and install dependencies:
-
-```bash
-npm install
-npm run build
-```
-
-Then run any example with `npx tsx`:
+Run any example with `npx tsx`:
 
 ```bash
 npx tsx examples/basic.ts
