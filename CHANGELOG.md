@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 This changelog is automatically managed by [Release Please](https://github.com/googleapis/release-please).
 
+## [3.1.0](https://github.com/yigitahmetsahin/workflow-ts/compare/v3.0.0...v3.1.0) (2026-01-22)
+
+
+### Features
+
+* add silenceError option to continue workflow on work failure ([44537de](https://github.com/yigitahmetsahin/workflow-ts/commit/44537de06b7cf300e123fa991c138e2af1a9e8f5))
+
 ## [3.0.0](https://github.com/yigitahmetsahin/workflow-ts/compare/v2.1.0...v3.0.0) (2026-01-22)
 
 
