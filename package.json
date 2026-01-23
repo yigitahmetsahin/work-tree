@@ -21,7 +21,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "lint": "prettier --write . && eslint src examples --fix && tsc --noEmit",
+    "format": "prettier --write .",
+    "lint": "npm run format && eslint src examples --fix && tsc --noEmit",
     "lint:check": "prettier --check . && eslint src examples && tsc --noEmit",
     "prepublishOnly": "npm run build"
   },
