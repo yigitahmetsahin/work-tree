@@ -147,7 +147,18 @@ console.log(step1Result.duration); // execution time in ms
 const sealed: ISealedWorkflow<TData, TWorkResults> = workflow.seal();
 // sealed.serial(...) - TypeScript error! Method doesn't exist
 // sealed.parallel(...) - TypeScript error! Method doesn't exist
-await sealed.run(initialData); // Only run() is available
+sealed.isSealed(); // true
+await sealed.run(initialData); // Only run() and isSealed() are available
+
+// Option 4: Seal with custom execute function
+const sealedWithExecute: ISealedWorkflowWithExecute<TData, TWorkResults> = workflow.seal({
+  execute: async (ctx) => {
+    console.log('Before:', ctx.data);
+    return workflow.run(ctx.data);
+  },
+});
+sealedWithExecute.name; // 'seal'
+await sealedWithExecute.execute({ data: initialData, workResults: ... }); // Custom execute
 ```
 
 ## Documentation & Testing Requirements

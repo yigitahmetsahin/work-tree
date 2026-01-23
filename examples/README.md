@@ -42,13 +42,25 @@ if (userResult.status === WorkStatus.COMPLETED) {
 Use `.seal()` to prevent further modifications to a workflow:
 
 ```typescript
-// Seal a workflow to only expose run()
+// Seal a workflow to only expose run() and isSealed()
 const sealed = new Workflow<{ userId: string }>()
   .serial({ name: 'validate', execute: async (ctx) => true })
   .seal();
 
 // sealed.serial(...) // TypeScript error!
+sealed.isSealed(); // true
 await sealed.run({ userId: '123' }); // OK
+
+// Seal with custom execute function for logging/metrics
+const sealedWithExecute = workflow.seal({
+  execute: async (ctx) => {
+    console.log('Before:', ctx.data);
+    return workflow.run(ctx.data);
+  },
+});
+
+sealedWithExecute.name; // 'seal'
+await sealedWithExecute.execute({ data: { userId: '123' }, workResults: ... });
 ```
 
 ## Examples Overview

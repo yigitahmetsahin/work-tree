@@ -107,6 +107,59 @@ export interface IWorkflowResult<
 }
 
 /**
+ * Interface for the Workflow class.
+ * Defines all methods available on a workflow before sealing.
+ */
+export interface IWorkflow<
+  TData = Record<string, unknown>,
+  TWorkResults extends Record<string, unknown> = Record<string, unknown>,
+> {
+  /**
+   * Add a serial work to the workflow
+   */
+  serial<TName extends string, TResult>(
+    work: IWorkDefinition<TName, TData, TResult, TWorkResults>
+  ): IWorkflow<TData, TWorkResults & { [K in TName]: TResult }>;
+
+  /**
+   * Add parallel works to the workflow
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  parallel(works: readonly IWorkDefinition<string, TData, any, TWorkResults>[]): IWorkflow<TData, any>;
+
+  /**
+   * Seal the workflow to prevent further modifications
+   */
+  seal(): ISealedWorkflow<TData, TWorkResults>;
+  seal(
+    sealingWork: ISealingWorkDefinition<TData, TWorkResults>
+  ): ISealedWorkflowWithExecute<TData, TWorkResults>;
+
+  /**
+   * Check if the workflow is sealed
+   */
+  isSealed(): boolean;
+
+  /**
+   * Execute the workflow with initial data
+   */
+  run(initialData: TData): Promise<IWorkflowResult<TData, TWorkResults>>;
+}
+
+/**
+ * A limited work definition for sealing a workflow.
+ * Similar to IWorkDefinition but without 'name' (hardcoded as 'seal').
+ * The execute function returns IWorkflowResult instead of a custom result type.
+ */
+export type ISealingWorkDefinition<
+  TData = Record<string, unknown>,
+  TWorkResults extends Record<string, unknown> = Record<string, unknown>,
+> = Omit<
+  IWorkDefinition<'seal', TData, IWorkflowResult<TData, TWorkResults>, TWorkResults>,
+  'name'
+>;
+
+/**
  * A sealed workflow that can only be executed, not modified.
  * Use workflow.seal() to create a sealed workflow.
  */
@@ -115,7 +168,64 @@ export interface ISealedWorkflow<
   TWorkResults extends Record<string, unknown> = Record<string, unknown>,
 > {
   /**
+   * Check if the workflow is sealed
+   */
+  isSealed(): boolean;
+
+  /**
    * Execute the workflow with initial data
    */
   run(initialData: TData): Promise<IWorkflowResult<TData, TWorkResults>>;
 }
+
+/**
+ * A sealed workflow with a custom execute function.
+ * Created when seal() is called with an execute option.
+ */
+export interface ISealedWorkflowWithExecute<
+  TData = Record<string, unknown>,
+  TWorkResults extends Record<string, unknown> = Record<string, unknown>,
+> extends ISealedWorkflow<TData, TWorkResults> {
+  /**
+   * Hardcoded name for the sealed workflow
+   */
+  readonly name: 'seal';
+
+  /**
+   * Custom execute function provided during sealing.
+   * Receives context (like a Work).
+   */
+  execute(
+    context: IWorkflowContext<TData, TWorkResults>
+  ): Promise<IWorkflowResult<TData, TWorkResults>>;
+}
+
+/**
+ * Options for configuring workflow behavior
+ */
+export interface WorkflowOptions {
+  /**
+   * Whether to stop execution immediately when a work fails.
+   * - true: Stop on first failure (default)
+   * - false: Continue executing remaining works, fail at the end if any work failed
+   * @default true
+   */
+  failFast?: boolean;
+}
+
+/**
+ * Helper type to extract work results from parallel works array.
+ * Since Work implements IWorkDefinition, we can use Extract directly.
+ */
+export type ParallelWorksToRecord<
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  T extends readonly IWorkDefinition<string, any, any, any>[],
+> = {
+  [K in T[number]['name']]: Extract<
+    T[number],
+    { name: K }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  > extends IWorkDefinition<string, any, infer R, any>
+    ? R
+    : never;
+};

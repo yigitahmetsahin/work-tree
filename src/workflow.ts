@@ -7,7 +7,12 @@ import {
   IWorkDefinition,
   IWorkResult,
   WorkStatus,
+  IWorkflow,
   ISealedWorkflow,
+  ISealingWorkDefinition,
+  ISealedWorkflowWithExecute,
+  WorkflowOptions,
+  ParallelWorksToRecord,
 } from './workflow.types';
 import { WorkInput, getWorkDefinition } from './work';
 
@@ -73,38 +78,37 @@ class WorkResultsMap<
  * const result = await workflow.run({ userId: '123' });
  * ```
  */
-/**
- * Options for configuring workflow behavior
- */
-export interface WorkflowOptions {
-  /**
-   * Whether to stop execution immediately when a work fails.
-   * - true: Stop on first failure (default)
-   * - false: Continue executing remaining works, fail at the end if any work failed
-   * @default true
-   */
-  failFast?: boolean;
-}
-
 export class Workflow<
   TData = Record<string, unknown>,
   TWorkResults extends Record<string, unknown> = NonNullable<unknown>,
-> {
+> implements IWorkflow<TData, TWorkResults> {
   private works: IWorkflowWork[] = [];
   private options: Required<WorkflowOptions>;
+  private _sealed = false;
 
   constructor(options: WorkflowOptions = {}) {
     this.options = { failFast: true, ...options };
   }
 
   /**
+   * Check if the workflow is sealed
+   */
+  isSealed(): boolean {
+    return this._sealed;
+  }
+
+  /**
    * Add a serial work to the workflow.
    * Accepts either an inline work definition or a Work instance.
    * The work name and result type are automatically inferred.
+   * @throws Error if the workflow is sealed
    */
   serial<TName extends string, TResult>(
     work: WorkInput<TName, TData, TResult, TWorkResults>
   ): Workflow<TData, TWorkResults & { [K in TName]: TResult }> {
+    if (this._sealed) {
+      throw new Error('Cannot add work to a sealed workflow');
+    }
     this.works.push({
       type: 'serial',
       works: [getWorkDefinition(work)],
@@ -116,6 +120,7 @@ export class Workflow<
    * Add parallel works to the workflow.
    * Accepts an array of work definitions or Work instances.
    * All work names and result types are automatically inferred.
+   * @throws Error if the workflow is sealed
    *
    * @example
    * ```typescript
@@ -128,6 +133,9 @@ export class Workflow<
   parallel<const TParallelWorks extends readonly WorkInput<string, TData, unknown, TWorkResults>[]>(
     works: TParallelWorks
   ): Workflow<TData, TWorkResults & ParallelWorksToRecord<TParallelWorks>> {
+    if (this._sealed) {
+      throw new Error('Cannot add work to a sealed workflow');
+    }
     this.works.push({
       type: 'parallel',
       works: works.map((w) => getWorkDefinition(w)) as unknown as IWorkDefinition<
@@ -146,16 +154,45 @@ export class Workflow<
    *
    * @example
    * ```typescript
+   * // Without options - returns ISealedWorkflow
    * const sealed = new Workflow<{ userId: string }>()
    *   .serial({ name: 'step1', execute: async () => 'result' })
    *   .seal();
    *
-   * // sealed.serial() - TypeScript error! Method doesn't exist
-   * // sealed.parallel() - TypeScript error! Method doesn't exist
+   * sealed.isSealed(); // true
    * await sealed.run({ userId: '123' }); // OK
+   *
+   * // With sealing work - returns ISealedWorkflowWithExecute
+   * const sealedWithExecute = workflow.seal({
+   *   execute: async (ctx) => {
+   *     console.log('Before:', ctx.data);
+   *     const result = await workflow.run(ctx.data);
+   *     console.log('After');
+   *     return result;
+   *   },
+   *   // Optional: shouldRun, onError, silenceError (like IWorkDefinition)
+   * });
+   *
+   * sealedWithExecute.name; // 'seal'
+   * await sealedWithExecute.execute({ data: initialData, workResults: ... });
    * ```
    */
-  seal(): ISealedWorkflow<TData, TWorkResults> {
+  seal(): ISealedWorkflow<TData, TWorkResults>;
+  seal(
+    sealingWork: ISealingWorkDefinition<TData, TWorkResults>
+  ): ISealedWorkflowWithExecute<TData, TWorkResults>;
+  seal(
+    sealingWork?: ISealingWorkDefinition<TData, TWorkResults>
+  ): ISealedWorkflow<TData, TWorkResults> | ISealedWorkflowWithExecute<TData, TWorkResults> {
+    this._sealed = true;
+    if (sealingWork?.execute) {
+      return {
+        name: 'seal' as const,
+        isSealed: () => this._sealed,
+        run: this.run.bind(this),
+        execute: sealingWork.execute,
+      };
+    }
     return this;
   }
 
@@ -377,20 +414,3 @@ export class Workflow<
     }
   }
 }
-
-/**
- * Helper type to extract work results from parallel works array.
- * Since Work implements IWorkDefinition, we can use Extract directly.
- */
-type ParallelWorksToRecord<
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  T extends readonly IWorkDefinition<string, any, any, any>[],
-> = {
-  [K in T[number]['name']]: Extract<
-    T[number],
-    { name: K }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  > extends IWorkDefinition<string, any, infer R, any>
-    ? R
-    : never;
-};
