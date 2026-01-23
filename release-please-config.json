@@ -2,13 +2,14 @@
   "packages": {
     ".": {
       "release-type": "node",
+      "versioning": "always-bump-patch",
       "changelog-sections": [
         { "type": "feat", "section": "Features" },
         { "type": "fix", "section": "Bug Fixes" },
         { "type": "perf", "section": "Performance" },
         { "type": "refactor", "section": "Refactoring" },
-        { "type": "docs", "section": "Documentation" },
-        { "type": "chore", "section": "Miscellaneous" }
+        { "type": "docs", "section": "Documentation", "hidden": true },
+        { "type": "chore", "section": "Miscellaneous", "hidden": true }
       ]
     }
   }
