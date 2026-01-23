@@ -125,7 +125,9 @@ export interface IWorkflow<
    * Add parallel works to the workflow
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  parallel(works: readonly IWorkDefinition<string, TData, any, TWorkResults>[]): IWorkflow<TData, any>;
+  parallel(
+    works: readonly IWorkDefinition<string, TData, any, TWorkResults>[]
+  ): IWorkflow<TData, any>;
 
   /**
    * Seal the workflow to prevent further modifications
