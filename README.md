@@ -237,6 +237,32 @@ console.log(workflow.name); // 'seal'
 const result = await workflow.run({ userId: '123' });
 ```
 
+#### Seal with Final Work
+
+You can pass an execute function to `seal()` that runs as a final serial work after all previous works:
+
+```typescript
+const sealed = new Workflow<{ userId: string }>()
+  .serial({ name: 'validate', execute: async (ctx) => true })
+  .parallel([
+    { name: 'fetchOrders', execute: async () => [{ id: 1 }] },
+    { name: 'fetchProfile', execute: async () => ({ name: 'John' }) },
+  ])
+  .seal({
+    name: 'finalize', // required
+    execute: async (ctx) => {
+      // Access results from previous works
+      const orders = ctx.workResults.get('fetchOrders').result;
+      const profile = ctx.workResults.get('fetchProfile').result;
+      return { orders, profile, summary: 'Done' };
+    },
+    // Optional: shouldRun, onError, silenceError work just like serial works
+  });
+
+const result = await sealed.run({ userId: '123' });
+console.log(result.workResults.get('finalize')?.result); // { orders, profile, summary: 'Done' }
+```
+
 ### Error Silencing
 
 Use `silenceError: true` to allow a work to fail without stopping the workflow. The error is still recorded and accessible:

@@ -986,5 +986,142 @@ describe('Workflow', () => {
       // @ts-expect-error - parallel doesn't exist on ISealedWorkflow
       expect(workflow.parallel).toBeUndefined();
     });
+
+    it('should execute sealingWork as final serial work after all previous works', async () => {
+      const executionOrder: string[] = [];
+
+      const workflow = new Workflow<{ value: number }>()
+        .serial({
+          name: 'first',
+          execute: async (ctx) => {
+            executionOrder.push('first');
+            return ctx.data.value * 2;
+          },
+        })
+        .parallel([
+          {
+            name: 'parallel1',
+            execute: async () => {
+              executionOrder.push('parallel1');
+              return 'p1';
+            },
+          },
+          {
+            name: 'parallel2',
+            execute: async () => {
+              executionOrder.push('parallel2');
+              return 'p2';
+            },
+          },
+        ])
+        .seal({
+          name: 'seal',
+          execute: async (ctx) => {
+            executionOrder.push('seal');
+            const firstResult = ctx.workResults.get('first').result;
+            return `sealed with ${firstResult}`;
+          },
+        });
+
+      const result = await workflow.run({ value: 5 });
+
+      expect(result.status).toBe('completed');
+
+      // seal work should execute after all previous works
+      expect(executionOrder[0]).toBe('first');
+      expect(executionOrder).toContain('parallel1');
+      expect(executionOrder).toContain('parallel2');
+      expect(executionOrder[executionOrder.length - 1]).toBe('seal');
+
+      // seal work result should be accessible
+      expect(result.context.workResults.get('seal')?.result).toBe('sealed with 10');
+      expect(result.context.workResults.get('seal')?.status).toBe('completed');
+    });
+
+    it('should support shouldRun in sealingWork', async () => {
+      const sealExecuteFn = vi.fn().mockResolvedValue('sealed');
+
+      const workflow = new Workflow<{ skip: boolean }>()
+        .serial({
+          name: 'first',
+          execute: async () => 'done',
+        })
+        .seal({
+          name: 'seal',
+          execute: sealExecuteFn,
+          shouldRun: (ctx) => !ctx.data.skip,
+        });
+
+      const result = await workflow.run({ skip: true });
+
+      expect(result.status).toBe('completed');
+      expect(sealExecuteFn).not.toHaveBeenCalled();
+      expect(result.workResults.get('seal')?.status).toBe('skipped');
+    });
+
+    it('should support onError in sealingWork', async () => {
+      const onErrorFn = vi.fn();
+
+      const workflow = new Workflow<{ value: number }>()
+        .serial({
+          name: 'first',
+          execute: async () => 'done',
+        })
+        .seal({
+          name: 'seal',
+          execute: async () => {
+            throw new Error('Seal failed');
+          },
+          onError: onErrorFn,
+        });
+
+      const result = await workflow.run({ value: 5 });
+
+      expect(result.status).toBe('failed');
+      expect(onErrorFn).toHaveBeenCalledTimes(1);
+      expect(onErrorFn).toHaveBeenCalledWith(expect.any(Error), expect.anything());
+    });
+
+    it('should support silenceError in sealingWork', async () => {
+      const workflow = new Workflow<{ value: number }>()
+        .serial({
+          name: 'first',
+          execute: async () => 'done',
+        })
+        .seal({
+          name: 'seal',
+          execute: async () => {
+            throw new Error('Seal failed silently');
+          },
+          silenceError: true,
+        });
+
+      const result = await workflow.run({ value: 5 });
+
+      expect(result.status).toBe('completed');
+      expect(result.workResults.get('seal')?.status).toBe('failed');
+      expect(result.workResults.get('seal')?.error?.message).toBe('Seal failed silently');
+    });
+
+    it('should require name for sealingWork', async () => {
+      const workflow = new Workflow<{ value: number }>()
+        .serial({
+          name: 'first',
+          execute: async (ctx) => ctx.data.value * 2,
+        })
+        .seal({
+          name: 'finalize',
+          execute: async (ctx) => {
+            const firstResult = ctx.workResults.get('first').result;
+            return `finalized: ${firstResult}`;
+          },
+        });
+
+      const result = await workflow.run({ value: 5 });
+
+      expect(result.status).toBe('completed');
+      expect(result.context.workResults.get('finalize')?.result).toBe('finalized: 10');
+      expect(result.workResults.get('finalize')?.status).toBe('completed');
+    });
   });
 });

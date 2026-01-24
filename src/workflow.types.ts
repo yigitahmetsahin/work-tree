@@ -134,9 +134,9 @@ export interface IWorkflow<
    * Seal the workflow to prevent further modifications
    */
   seal(): ISealedWorkflow<TData, TWorkResults>;
-  seal<TResult>(
-    sealingWork: ISealingWorkDefinition<TData, TWorkResults, TResult>
-  ): ISealedWorkflow<TData, TWorkResults>;
+  seal<TName extends string, TResult>(
+    sealingWork: ISealingWorkDefinition<TName, TData, TWorkResults, TResult>
+  ): ISealedWorkflow<TData, TWorkResults & { [K in TName]: TResult }>;
 
   /**
    * Check if the workflow is sealed
@@ -151,13 +151,14 @@ export interface IWorkflow<
 
 /**
  * A work definition for sealing a workflow.
- * Similar to IWorkDefinition but without 'name'.
+ * Same as IWorkDefinition - reuses the interface for consistency.
  */
 export type ISealingWorkDefinition<
+  TName extends string,
   TData = Record<string, unknown>,
   TWorkResults extends Record<string, unknown> = Record<string, unknown>,
   TResult = unknown,
-> = Omit<IWorkDefinition<'seal', TData, TResult, TWorkResults>, 'name'>;
+> = IWorkDefinition<TName, TData, TResult, TWorkResults>;
 
 /**
  * A sealed workflow that can only be executed, not modified.
