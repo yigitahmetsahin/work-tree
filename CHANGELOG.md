@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 This changelog is automatically managed by [Release Please](https://github.com/googleapis/release-please).
 
+## [3.4.3](https://github.com/yigitahmetsahin/workflow-ts/compare/v3.4.2...v3.4.3) (2026-01-24)
+
+
+### Refactoring
+
+* use types instead of interfaces for data structures and string unions for enums ([231a316](https://github.com/yigitahmetsahin/workflow-ts/commit/231a316f1600defe2bf0aec526f7f325d3fece02))
+
 ## [3.4.2](https://github.com/yigitahmetsahin/workflow-ts/compare/v3.4.1...v3.4.2) (2026-01-23)
 
 
