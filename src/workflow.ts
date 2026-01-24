@@ -173,12 +173,19 @@ export class Workflow<
    * ```
    */
   seal(): ISealedWorkflow<TData, TWorkResults>;
-  seal<TResult>(
-    sealingWork: ISealingWorkDefinition<TData, TWorkResults, TResult>
-  ): ISealedWorkflow<TData, TWorkResults>;
-  seal<TResult>(
-    _sealingWork?: ISealingWorkDefinition<TData, TWorkResults, TResult>
-  ): ISealedWorkflow<TData, TWorkResults> {
+  seal<TName extends string, TResult>(
+    sealingWork: ISealingWorkDefinition<TName, TData, TWorkResults, TResult>
+  ): ISealedWorkflow<TData, TWorkResults & { [K in TName]: TResult }>;
+  seal<TName extends string, TResult>(
+    sealingWork?: ISealingWorkDefinition<TName, TData, TWorkResults, TResult>
+  ): ISealedWorkflow<TData, TWorkResults & { [K in TName]: TResult }> {
+    // If sealingWork is provided, add it as a final serial work
+    if (sealingWork) {
+      this._works.push({
+        type: 'serial',
+        works: [sealingWork],
+      });
+    }
     this._sealed = true;
     return {
       name: 'seal',
@@ -186,7 +193,7 @@ export class Workflow<
       options: this._options,
       isSealed: () => this._sealed,
       run: this.run.bind(this),
-    };
+    } as ISealedWorkflow<TData, TWorkResults & { [K in TName]: TResult }>;
   }
 
   /**

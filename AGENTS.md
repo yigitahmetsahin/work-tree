@@ -173,6 +173,20 @@ sealed.isSealed(); // true
 await sealed.run(initialData); // Execute the workflow
 // sealed.serial(...) - TypeScript error! Method doesn't exist
 // sealed.parallel(...) - TypeScript error! Method doesn't exist
+
+// Option 4: Seal with a final work (executes after all previous works)
+const sealedWithWork = workflow.seal({
+  name: 'finalize', // required
+  execute: async (ctx) => {
+    // Access results from previous works
+    const result = ctx.workResults.get('step1').result;
+    return `Final: ${result}`;
+  },
+  shouldRun: (ctx) => true, // optional
+  onError: (error, ctx) => {}, // optional
+  silenceError: false, // optional
+});
+// The seal work runs as a final serial work
 ```
 
 ## Documentation & Testing Requirements
