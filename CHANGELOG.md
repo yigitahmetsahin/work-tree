@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 This changelog is automatically managed by [Release Please](https://github.com/googleapis/release-please).
 
+## [3.4.4](https://github.com/yigitahmetsahin/workflow-ts/compare/v3.4.3...v3.4.4) (2026-01-24)
+
+
+### Features
+
+* implement seal() with final work execution ([bb2ec36](https://github.com/yigitahmetsahin/workflow-ts/commit/bb2ec36ded1d099270a478507e5d48186ab27098))
+
 ## [3.4.3](https://github.com/yigitahmetsahin/workflow-ts/compare/v3.4.2...v3.4.3) (2026-01-24)
 
 
