@@ -7,6 +7,7 @@ This folder contains practical examples of using `@yigitahmetsahin/work-tree`.
 Run any example with `npx tsx`:
 
 ```bash
+npx tsx examples/minimal.ts
 npx tsx examples/basic.ts
 npx tsx examples/parallel.ts
 npx tsx examples/conditional.ts
@@ -70,6 +71,15 @@ if (userResult.status === WorkStatus.Completed) {
 ```
 
 ## Examples Overview
+
+### 0. Minimal (`minimal.ts`)
+
+The simplest possible example demonstrating:
+
+- Creating a tree with `Work.tree()`
+- Adding serial steps
+- Accessing results from previous steps
+- Running and checking completion status
 
 ### 1. Basic (`basic.ts`)
 
