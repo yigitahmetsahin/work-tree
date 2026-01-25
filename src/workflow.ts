@@ -307,15 +307,20 @@ export class Workflow<
       context.workResults.set(work.name as keyof TWorkResults, failedResult as any);
       workResults.set(work.name as keyof TWorkResults, failedResult);
 
-      // Call error handler if provided
-      if (work.onError) {
-        await work.onError(err, context);
+      // If silenceError is true, don't call onError, just continue
+      if (work.silenceError) {
+        return;
       }
 
-      // Re-throw to stop workflow execution (unless silenceError is true)
-      if (!work.silenceError) {
-        throw err;
+      // If onError handler exists, let it decide whether to propagate the error
+      if (work.onError) {
+        // If onError throws, propagate. If it doesn't throw, swallow the error.
+        await work.onError(err, context);
+        return;
       }
+
+      // No onError handler and silenceError is false - throw to stop workflow
+      throw err;
     }
   }
 
@@ -352,12 +357,26 @@ export class Workflow<
       } catch (error) {
         const err = error instanceof Error ? error : new Error(String(error));
 
-        // If failFast is true, call onError immediately
-        if (this._options.failFast && work.onError) {
-          await work.onError(err, context);
+        // If silenceError is true, don't call onError, just return the error as swallowed
+        if (work.silenceError) {
+          return { work, error: err, startTime: workStartTime, swallowed: true };
         }
 
-        return { work, error: err, startTime: workStartTime };
+        // If failFast is true and onError exists, call it immediately
+        // If onError throws, propagate. If it doesn't throw, swallow.
+        if (this._options.failFast && work.onError) {
+          try {
+            await work.onError(err, context);
+            // onError didn't throw - swallow the error
+            return { work, error: err, startTime: workStartTime, swallowed: true };
+          } catch {
+            // onError threw - propagate the error
+            return { work, error: err, startTime: workStartTime, swallowed: false };
+          }
+        }
+
+        // No onError or failFast is false - will be handled after Promise.all
+        return { work, error: err, startTime: workStartTime, swallowed: false };
       }
     });
 
@@ -383,8 +402,9 @@ export class Workflow<
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         context.workResults.set(result.work.name as keyof TWorkResults, workResult as any);
         workResults.set(result.work.name as keyof TWorkResults, workResult);
-        // Only track as error if silenceError is not set
-        if (!result.work.silenceError) {
+
+        // Track as error only if not swallowed and not silenced
+        if (!result.swallowed && !result.work.silenceError) {
           errors.push({ work: result.work, error: result.error });
         }
       } else {
@@ -400,10 +420,20 @@ export class Workflow<
     }
 
     // Call error handlers for all failed works only if failFast is false (deferred mode)
+    // Skip if silenceError is true (don't call onError for silenced errors)
     if (!this._options.failFast) {
       for (const result of results) {
-        if ('error' in result && result.error && result.work.onError) {
-          await result.work.onError(result.error, context);
+        if ('error' in result && result.error && result.work.onError && !result.work.silenceError) {
+          try {
+            await result.work.onError(result.error, context);
+            // onError didn't throw - mark as swallowed (remove from errors)
+            const errorIndex = errors.findIndex((e) => e.work === result.work);
+            if (errorIndex !== -1) {
+              errors.splice(errorIndex, 1);
+            }
+          } catch {
+            // onError threw - keep the error in the list
+          }
         }
       }
     }

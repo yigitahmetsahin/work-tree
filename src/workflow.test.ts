@@ -658,7 +658,7 @@ describe('Workflow', () => {
       expect(result.error?.message).toBe('Not silenced error');
     });
 
-    it('should call onError even when silenceError is true', async () => {
+    it('should NOT call onError when silenceError is true', async () => {
       const onErrorFn = vi.fn();
 
       const workflow = new Workflow<{ value: number }>().serial({
@@ -673,8 +673,91 @@ describe('Workflow', () => {
       const result = await workflow.run({ value: 5 });
 
       expect(result.status).toBe(WorkflowStatus.Completed);
+      expect(onErrorFn).not.toHaveBeenCalled();
+      expect(result.context.workResults.get('failing')?.status).toBe(WorkStatus.Failed);
+      expect(result.context.workResults.get('failing')?.error?.message).toBe('Error with handler');
+    });
+
+    it('should continue workflow when onError swallows error (does not throw)', async () => {
+      const onErrorFn = vi.fn();
+
+      const workflow = new Workflow<{ value: number }>()
+        .serial({
+          name: 'failing',
+          execute: async () => {
+            throw new Error('Swallowed error');
+          },
+          onError: async (err, ctx) => {
+            onErrorFn(err, ctx);
+            // Not throwing - swallow the error
+          },
+        })
+        .serial({
+          name: 'afterError',
+          execute: async () => 'continued',
+        });
+
+      const result = await workflow.run({ value: 5 });
+
+      expect(result.status).toBe(WorkflowStatus.Completed);
       expect(onErrorFn).toHaveBeenCalledTimes(1);
-      expect(onErrorFn).toHaveBeenCalledWith(expect.any(Error), expect.any(Object));
+      expect(result.context.workResults.get('failing')?.status).toBe(WorkStatus.Failed);
+      expect(result.context.workResults.get('afterError')?.result).toBe('continued');
+    });
+
+    it('should stop workflow when onError re-throws error', async () => {
+      const onErrorFn = vi.fn();
+
+      const workflow = new Workflow<{ value: number }>()
+        .serial({
+          name: 'failing',
+          execute: async () => {
+            throw new Error('Re-thrown error');
+          },
+          onError: async (err, ctx) => {
+            onErrorFn(err, ctx);
+            throw err; // Re-throw - stop the workflow
+          },
+        })
+        .serial({
+          name: 'afterError',
+          execute: async () => 'should not run',
+        });
+
+      const result = await workflow.run({ value: 5 });
+
+      expect(result.status).toBe(WorkflowStatus.Failed);
+      expect(result.error?.message).toBe('Re-thrown error');
+      expect(onErrorFn).toHaveBeenCalledTimes(1);
+      expect(result.context.workResults.get('failing')?.status).toBe(WorkStatus.Failed);
+      expect(result.context.workResults.has('afterError')).toBe(false);
+    });
+
+    it('should allow onError to decide based on error type', async () => {
+      const workflow = new Workflow<{ value: number }>()
+        .serial({
+          name: 'conditionalFail',
+          execute: async () => {
+            throw new Error('RETRYABLE: temporary issue');
+          },
+          onError: async (err) => {
+            if (!err.message.startsWith('RETRYABLE:')) {
+              throw err; // Only throw for non-retryable errors
+            }
+            // Swallow retryable errors
+          },
+        })
+        .serial({
+          name: 'afterError',
+          execute: async () => 'continued after retryable',
+        });
+
+      const result = await workflow.run({ value: 5 });
+
+      expect(result.status).toBe(WorkflowStatus.Completed);
+      expect(result.context.workResults.get('afterError')?.result).toBe(
+        'continued after retryable'
+      );
     });
 
     it('should allow accessing silenced error in subsequent work', async () => {
@@ -704,6 +787,131 @@ describe('Workflow', () => {
         wasFailed: true,
         errorMessage: 'Check me later',
       });
+    });
+
+    it('should NOT call onError for parallel work when silenceError is true', async () => {
+      const onErrorFn = vi.fn();
+
+      const workflow = new Workflow<{ value: number }>()
+        .parallel([
+          {
+            name: 'failing',
+            execute: async () => {
+              throw new Error('Silent parallel error');
+            },
+            silenceError: true,
+            onError: onErrorFn,
+          },
+          {
+            name: 'success',
+            execute: async () => 'ok',
+          },
+        ])
+        .serial({ name: 'after', execute: async () => 'continued' });
+
+      const result = await workflow.run({ value: 5 });
+
+      expect(result.status).toBe(WorkflowStatus.Completed);
+      expect(onErrorFn).not.toHaveBeenCalled();
+      expect(result.context.workResults.get('failing')?.status).toBe(WorkStatus.Failed);
+      expect(result.context.workResults.get('after')?.result).toBe('continued');
+    });
+
+    it('should continue workflow when parallel onError swallows error', async () => {
+      const onErrorFn = vi.fn();
+
+      const workflow = new Workflow<{ value: number }>()
+        .parallel([
+          {
+            name: 'failing',
+            execute: async () => {
+              throw new Error('Swallowed parallel error');
+            },
+            onError: async (err, ctx) => {
+              onErrorFn(err, ctx);
+              // Not throwing - swallow
+            },
+          },
+          {
+            name: 'success',
+            execute: async () => 'ok',
+          },
+        ])
+        .serial({ name: 'after', execute: async () => 'continued' });
+
+      const result = await workflow.run({ value: 5 });
+
+      expect(result.status).toBe(WorkflowStatus.Completed);
+      expect(onErrorFn).toHaveBeenCalledTimes(1);
+      expect(result.context.workResults.get('failing')?.status).toBe(WorkStatus.Failed);
+      expect(result.context.workResults.get('after')?.result).toBe('continued');
+    });
+
+    it('should stop workflow when parallel onError re-throws error', async () => {
+      const onErrorFn = vi.fn();
+
+      const workflow = new Workflow<{ value: number }>()
+        .parallel([
+          {
+            name: 'failing',
+            execute: async () => {
+              throw new Error('Re-thrown parallel error');
+            },
+            onError: async (err, ctx) => {
+              onErrorFn(err, ctx);
+              throw err; // Re-throw
+            },
+          },
+          {
+            name: 'success',
+            execute: async () => 'ok',
+          },
+        ])
+        .serial({ name: 'after', execute: async () => 'should not run' });
+
+      const result = await workflow.run({ value: 5 });
+
+      expect(result.status).toBe(WorkflowStatus.Failed);
+      expect(result.error?.message).toBe('Re-thrown parallel error');
+      expect(onErrorFn).toHaveBeenCalledTimes(1);
+      expect(result.context.workResults.has('after')).toBe(false);
+    });
+
+    it('should handle mixed swallow and re-throw in parallel works', async () => {
+      const events: string[] = [];
+
+      const workflow = new Workflow<{ value: number }>()
+        .parallel([
+          {
+            name: 'swallowed',
+            execute: async () => {
+              throw new Error('Swallowed');
+            },
+            onError: async () => {
+              events.push('swallowed:onError');
+              // Don't throw - swallow
+            },
+          },
+          {
+            name: 'rethrown',
+            execute: async () => {
+              await new Promise((r) => setTimeout(r, 20));
+              throw new Error('Re-thrown');
+            },
+            onError: async (err) => {
+              events.push('rethrown:onError');
+              throw err; // Re-throw
+            },
+          },
+        ])
+        .serial({ name: 'after', execute: async () => 'should not run' });
+
+      const result = await workflow.run({ value: 5 });
+
+      expect(result.status).toBe(WorkflowStatus.Failed);
+      expect(result.error?.message).toBe('Re-thrown');
+      expect(events).toContain('swallowed:onError');
+      expect(events).toContain('rethrown:onError');
     });
   });
 
@@ -1196,7 +1404,10 @@ describe('Workflow', () => {
           execute: async () => {
             throw new Error('Seal failed');
           },
-          onError: onErrorFn,
+          onError: async (err, ctx) => {
+            onErrorFn(err, ctx);
+            throw err; // Re-throw to fail the workflow
+          },
         });
 
       const result = await workflow.run({ value: 5 });
