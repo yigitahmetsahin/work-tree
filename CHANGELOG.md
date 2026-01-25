@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 This changelog is automatically managed by [Release Please](https://github.com/googleapis/release-please).
 
+## [5.2.0](https://github.com/yigitahmetsahin/workflow-ts/compare/v5.1.0...v5.2.0) (2026-01-25)
+
+
+### Features
+
+* add nested workflow groups with 5-level type inference ([7124579](https://github.com/yigitahmetsahin/workflow-ts/commit/712457956cedee604cf12c28871b2eb5dc770713))
+
 ## [5.1.0](https://github.com/yigitahmetsahin/workflow-ts/compare/v5.0.0...v5.1.0) (2026-01-25)
 
 
