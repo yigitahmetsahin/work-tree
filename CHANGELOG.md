@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 This changelog is automatically managed by [Release Please](https://github.com/googleapis/release-please).
 
+## [4.1.0](https://github.com/yigitahmetsahin/workflow-ts/compare/v4.0.0...v4.1.0) (2026-01-25)
+
+
+### Features
+
+* call onError immediately in parallel works when failFast is true ([90e83ee](https://github.com/yigitahmetsahin/workflow-ts/commit/90e83eedc41cc18c2c27793cbeedf1abb061cfff))
+
 ## [4.0.0](https://github.com/yigitahmetsahin/workflow-ts/compare/v3.4.6...v4.0.0) (2026-01-24)
 
 
