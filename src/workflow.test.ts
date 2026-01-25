@@ -884,6 +884,130 @@ describe('Workflow', () => {
       expect(result.status).toBe(WorkflowStatus.Completed);
       expect(executionOrder).toEqual(['fail1', 'fail2', 'last']);
     });
+
+    it('should call onError immediately when parallel work fails with failFast: true (default)', async () => {
+      const events: string[] = [];
+
+      const workflow = new Workflow<{ value: number }>().parallel([
+        {
+          name: 'fastFail',
+          execute: async () => {
+            events.push('fastFail:start');
+            throw new Error('Fast failure');
+          },
+          onError: async () => {
+            events.push('fastFail:onError');
+          },
+        },
+        {
+          name: 'slowSuccess',
+          execute: async () => {
+            events.push('slowSuccess:start');
+            await new Promise((r) => setTimeout(r, 50));
+            events.push('slowSuccess:end');
+            return 'done';
+          },
+        },
+      ]);
+
+      await workflow.run({ value: 5 });
+
+      // With failFast: true, onError should be called immediately (before slowSuccess ends)
+      const onErrorIndex = events.indexOf('fastFail:onError');
+      const slowEndIndex = events.indexOf('slowSuccess:end');
+
+      expect(onErrorIndex).toBeGreaterThan(-1);
+      expect(slowEndIndex).toBeGreaterThan(-1);
+      // onError should be called BEFORE slowSuccess completes
+      expect(onErrorIndex).toBeLessThan(slowEndIndex);
+    });
+
+    it('should call onError after all parallel works complete with failFast: false', async () => {
+      const events: string[] = [];
+
+      const workflow = new Workflow<{ value: number }>({ failFast: false }).parallel([
+        {
+          name: 'fastFail',
+          execute: async () => {
+            events.push('fastFail:start');
+            throw new Error('Fast failure');
+          },
+          onError: async () => {
+            events.push('fastFail:onError');
+          },
+        },
+        {
+          name: 'slowSuccess',
+          execute: async () => {
+            events.push('slowSuccess:start');
+            await new Promise((r) => setTimeout(r, 50));
+            events.push('slowSuccess:end');
+            return 'done';
+          },
+        },
+      ]);
+
+      await workflow.run({ value: 5 });
+
+      // With failFast: false, onError should be called after all works complete
+      const onErrorIndex = events.indexOf('fastFail:onError');
+      const slowEndIndex = events.indexOf('slowSuccess:end');
+
+      expect(onErrorIndex).toBeGreaterThan(-1);
+      expect(slowEndIndex).toBeGreaterThan(-1);
+      // onError should be called AFTER slowSuccess completes
+      expect(onErrorIndex).toBeGreaterThan(slowEndIndex);
+    });
+
+    it('should call multiple onError handlers immediately with failFast: true', async () => {
+      const events: string[] = [];
+
+      const workflow = new Workflow<{ value: number }>().parallel([
+        {
+          name: 'fail1',
+          execute: async () => {
+            events.push('fail1:start');
+            throw new Error('Failure 1');
+          },
+          onError: async () => {
+            events.push('fail1:onError');
+          },
+        },
+        {
+          name: 'fail2',
+          execute: async () => {
+            events.push('fail2:start');
+            await new Promise((r) => setTimeout(r, 20));
+            events.push('fail2:throw');
+            throw new Error('Failure 2');
+          },
+          onError: async () => {
+            events.push('fail2:onError');
+          },
+        },
+        {
+          name: 'slowSuccess',
+          execute: async () => {
+            events.push('slowSuccess:start');
+            await new Promise((r) => setTimeout(r, 50));
+            events.push('slowSuccess:end');
+            return 'done';
+          },
+        },
+      ]);
+
+      await workflow.run({ value: 5 });
+
+      // Both onError handlers should be called immediately when their respective work fails
+      // fail1:onError should come before slowSuccess:end
+      const fail1OnErrorIndex = events.indexOf('fail1:onError');
+      const fail2OnErrorIndex = events.indexOf('fail2:onError');
+      const slowEndIndex = events.indexOf('slowSuccess:end');
+
+      expect(fail1OnErrorIndex).toBeLessThan(slowEndIndex);
+      // fail2:onError should also come before slowSuccess:end (fail2 fails at 20ms, slow ends at 50ms)
+      expect(fail2OnErrorIndex).toBeLessThan(slowEndIndex);
+    });
   });
 
   describe('seal', () => {

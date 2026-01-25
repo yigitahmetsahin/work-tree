@@ -351,6 +351,12 @@ export class Workflow<
         return { work, result, startTime: workStartTime };
       } catch (error) {
         const err = error instanceof Error ? error : new Error(String(error));
+
+        // If failFast is true, call onError immediately
+        if (this._options.failFast && work.onError) {
+          await work.onError(err, context);
+        }
+
         return { work, error: err, startTime: workStartTime };
       }
     });
@@ -393,10 +399,12 @@ export class Workflow<
       }
     }
 
-    // Call error handlers for all failed works (including silenced ones)
-    for (const result of results) {
-      if ('error' in result && result.error && result.work.onError) {
-        await result.work.onError(result.error, context);
+    // Call error handlers for all failed works only if failFast is false (deferred mode)
+    if (!this._options.failFast) {
+      for (const result of results) {
+        if ('error' in result && result.error && result.work.onError) {
+          await result.work.onError(result.error, context);
+        }
       }
     }
 
