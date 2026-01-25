@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 
 This changelog is automatically managed by [Release Please](https://github.com/googleapis/release-please).
 
+## [6.0.0](https://github.com/yigitahmetsahin/workflow-ts/compare/v5.2.0...v6.0.0) (2026-01-25)
+
+
+### ⚠ BREAKING CHANGES
+
+* This is a major API redesign.
+
+### Features
+
+* unify Work and TreeWork API, remove Workflow class ([2357464](https://github.com/yigitahmetsahin/workflow-ts/commit/235746476fbc30405e65e116c945cd5b1e8cfb6a))
+
 ## [5.2.0](https://github.com/yigitahmetsahin/workflow-ts/compare/v5.1.0...v5.2.0) (2026-01-25)
 
 
