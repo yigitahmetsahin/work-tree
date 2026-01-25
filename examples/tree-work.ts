@@ -23,6 +23,11 @@
 
 import { Work } from '../src';
 
+// Define shared context data type
+interface TreeData {
+  userId: string;
+}
+
 async function main() {
   console.log('=== 4 Level Nested Tree Example ===\n');
 
@@ -30,7 +35,8 @@ async function main() {
   // These are the deepest works in branch A
 
   // Level 3: Contains level 4 works (serial)
-  const lv3TreeA = Work.tree('lv3TreeA')
+  // Use Work.tree<TData>() for typed ctx.data with workResults inference
+  const lv3TreeA = Work.tree<TreeData>('lv3TreeA')
     .addSerial({
       name: 'lv4Step1',
       execute: async () => {
@@ -49,7 +55,7 @@ async function main() {
     });
 
   // Level 3: Contains level 4 works (parallel)
-  const lv3TreeB = Work.tree('lv3TreeB').addParallel([
+  const lv3TreeB = Work.tree<TreeData>('lv3TreeB').addParallel([
     {
       name: 'lv4Step3',
       execute: async () => {
@@ -67,13 +73,13 @@ async function main() {
   ]);
 
   // Level 2: Contains level 3 tree (branch A)
-  const lv2TreeA = Work.tree('lv2TreeA').addSerial(lv3TreeA);
+  const lv2TreeA = Work.tree<TreeData>('lv2TreeA').addSerial(lv3TreeA);
 
   // Level 2: Contains level 3 tree (branch B)
-  const lv2TreeB = Work.tree('lv2TreeB').addSerial(lv3TreeB);
+  const lv2TreeB = Work.tree<TreeData>('lv2TreeB').addSerial(lv3TreeB);
 
   // Level 1: Root tree containing level 2 trees + aggregate step
-  const lv1Tree = Work.tree('lv1Tree')
+  const lv1Tree = Work.tree<TreeData>('lv1Tree')
     .addParallel([lv2TreeA, lv2TreeB])
     .seal({
       name: 'aggregate',
@@ -84,12 +90,6 @@ async function main() {
         const step3 = ctx.workResults.get('lv4Step3').result;
         const step4 = ctx.workResults.get('lv4Step4').result;
 
-        // ✅ Intermediate tree results also accessible
-        const lv3A = ctx.workResults.get('lv3TreeA');
-        const lv3B = ctx.workResults.get('lv3TreeB');
-        const lv2A = ctx.workResults.get('lv2TreeA');
-        const lv2B = ctx.workResults.get('lv2TreeB');
-
         console.log('\n  Aggregate - all lv4 results:');
         console.log('    lv4Step1:', step1);
         console.log('    lv4Step2:', step2);
@@ -98,12 +98,6 @@ async function main() {
 
         return {
           allValues: [step1?.value, step2?.value, step3?.value, step4?.value],
-          treeStatuses: {
-            lv3TreeA: lv3A.status,
-            lv3TreeB: lv3B.status,
-            lv2TreeA: lv2A.status,
-            lv2TreeB: lv2B.status,
-          },
         };
       },
     });

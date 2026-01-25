@@ -17,6 +17,14 @@ import { WorkResultsMap } from './work-results-map';
 import { isTreeWorkDefinition } from './type-guards';
 
 /**
+ * Helper type that only creates a record if the key is a literal string.
+ * If K is the wide 'string' type, returns empty object to avoid index signatures.
+ * This prevents { [x: string]: unknown } from polluting accumulated types.
+ */
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
+type MaybeRecord<K extends string, V> = string extends K ? {} : { [P in K]: V };
+
+/**
  * A standalone leaf Work unit that can be added to workflows.
  * Implements IWorkDefinition so it can be used anywhere a work definition is expected.
  *
@@ -107,19 +115,13 @@ export class Work<
    * const treeWithOptions = Work.tree('myTree', { failFast: false });
    * ```
    */
-  static tree<
-    TData = Record<string, unknown>,
-    // Use NonNullable<unknown> (empty object) as default to preserve specific keys for autocomplete
+  static tree<TData = Record<string, unknown>>(
+    name: string,
+    options?: TreeWorkFactoryOptions<TData>
     // eslint-disable-next-line @typescript-eslint/no-empty-object-type
-    TBase extends Record<string, unknown> = {},
-    const TName extends string = string,
-  >(
-    name: TName,
-    options?: TreeWorkFactoryOptions<TData, TBase>
+  ): TreeWork<string, TData, {}, {}> {
     // eslint-disable-next-line @typescript-eslint/no-empty-object-type
-  ): TreeWork<TName, TData, TBase, {}> {
-    // eslint-disable-next-line @typescript-eslint/no-empty-object-type
-    return new TreeWork<TName, TData, TBase, {}>({ name, ...options });
+    return new TreeWork<string, TData, {}, {}>({ name, ...options });
   }
 }
 
@@ -159,7 +161,7 @@ export class TreeWork<
 >
   implements
     ITreeWorkDefinition<TName, TData, TBase & TAccumulated>,
-    IRunnableTreeWork<TData, TBase & TAccumulated & { [K in TName]: unknown }>
+    IRunnableTreeWork<TData, TBase & TAccumulated & MaybeRecord<TName, unknown>>
 {
   /** Unique name for the tree work */
   readonly name: TName;
@@ -252,13 +254,19 @@ export class TreeWork<
     work: IWorkDefinition<TWorkName, TData, TWorkResult, TBase & TAccumulated>
   ): TreeWork<TName, TData, TBase, TAccumulated & { [K in TWorkName]: TWorkResult }>;
   // Overload for nested tree works
+  // Uses MaybeRecord to avoid index signatures when tree names are generic 'string'
   addSerial<
     const TTreeName extends string,
     TTreeBase extends Record<string, unknown>,
     TTreeAccumulated extends Record<string, unknown>,
   >(
     work: TreeWork<TTreeName, TData, TTreeBase, TTreeAccumulated>
-  ): TreeWork<TName, TData, TBase, TAccumulated & { [K in TTreeName]: unknown } & TTreeAccumulated>;
+  ): TreeWork<
+    TName,
+    TData,
+    TBase,
+    TAccumulated & MaybeRecord<TTreeName, unknown> & TTreeAccumulated
+  >;
   // Implementation
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   addSerial(work: any): any {
@@ -337,12 +345,12 @@ export class TreeWork<
    * });
    * ```
    */
-  seal(): SealedTreeWork<TData, TBase & TAccumulated & { [K in TName]: unknown }>;
+  seal(): SealedTreeWork<TData, TBase & TAccumulated & MaybeRecord<TName, unknown>>;
   seal<TFinalName extends string, TFinalResult>(
     finalWork: IWorkDefinition<TFinalName, TData, TFinalResult, TBase & TAccumulated>
   ): SealedTreeWork<
     TData,
-    TBase & TAccumulated & { [K in TFinalName]: TFinalResult } & { [K in TName]: unknown }
+    TBase & TAccumulated & { [K in TFinalName]: TFinalResult } & MaybeRecord<TName, unknown>
   >;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   seal(finalWork?: any): any {
@@ -383,14 +391,14 @@ export class TreeWork<
    */
   async run(
     data: TData
-  ): Promise<TreeResult<TData, TBase & TAccumulated & { [K in TName]: unknown }>> {
+  ): Promise<TreeResult<TData, TBase & TAccumulated & MaybeRecord<TName, unknown>>> {
     const startTime = Date.now();
     const workResults = new Map<string, WorkResult>();
-    const workResultsMap = new WorkResultsMap<TBase & TAccumulated & { [K in TName]: unknown }>(
+    const workResultsMap = new WorkResultsMap<TBase & TAccumulated & MaybeRecord<TName, unknown>>(
       workResults
     );
 
-    const context: WorkflowContext<TData, TBase & TAccumulated & { [K in TName]: unknown }> = {
+    const context: WorkflowContext<TData, TBase & TAccumulated & MaybeRecord<TName, unknown>> = {
       data,
       workResults: workResultsMap,
     };
@@ -404,7 +412,7 @@ export class TreeWork<
           status: WorkStatus.Failed,
           context,
           workResults: workResults as Map<
-            keyof (TBase & TAccumulated & { [K in TName]: unknown }),
+            keyof (TBase & TAccumulated & MaybeRecord<TName, unknown>),
             WorkResult
           >,
           totalDuration: Date.now() - startTime,
@@ -416,7 +424,7 @@ export class TreeWork<
         status: WorkStatus.Completed,
         context,
         workResults: workResults as Map<
-          keyof (TBase & TAccumulated & { [K in TName]: unknown }),
+          keyof (TBase & TAccumulated & MaybeRecord<TName, unknown>),
           WorkResult
         >,
         totalDuration: Date.now() - startTime,
@@ -426,7 +434,7 @@ export class TreeWork<
         status: WorkStatus.Failed,
         context,
         workResults: workResults as Map<
-          keyof (TBase & TAccumulated & { [K in TName]: unknown }),
+          keyof (TBase & TAccumulated & MaybeRecord<TName, unknown>),
           WorkResult
         >,
         totalDuration: Date.now() - startTime,
@@ -752,6 +760,7 @@ type ParallelWorkInput<TData> =
 
 /**
  * Helper type to extract the result type from a work (name -> result mapping)
+ * Uses MaybeRecord to avoid index signatures when tree names are generic 'string'
  */
 
 type ExtractWorkResult<TWork> =
@@ -760,10 +769,10 @@ type ExtractWorkResult<TWork> =
     ? { [K in N]: R }
     : // eslint-disable-next-line @typescript-eslint/no-explicit-any
       TWork extends TreeWork<infer N, any, any, any>
-      ? { [K in N]: unknown }
+      ? MaybeRecord<N, unknown>
       : // eslint-disable-next-line @typescript-eslint/no-explicit-any
         TWork extends ITreeWorkDefinition<infer N, any, any>
-        ? { [K in N]: unknown }
+        ? MaybeRecord<N, unknown>
         : // eslint-disable-next-line @typescript-eslint/no-empty-object-type
           {};
 
