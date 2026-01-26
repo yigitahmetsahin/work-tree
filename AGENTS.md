@@ -272,14 +272,19 @@ Documentation, tests, and examples should be updated **in the same PR** as the c
 
 ## Branching Policy
 
+**CRITICAL: ALWAYS create a NEW branch from `main` for EVERY change.** Never reuse or add commits to an existing branch, even if it seems related. Each task/fix/feature gets its own fresh branch.
+
 - **Each feature or fix requires a separate branch** - never push multiple unrelated changes to the same branch
+- **NEVER use an existing branch** - always run `git checkout main && git pull && git checkout -b <new-branch>` before starting any work
 - Branch naming convention:
   - Features: `feat/<short-description>` (e.g., `feat/retry-mechanism`)
   - Bug fixes: `fix/<short-description>` (e.g., `fix/null-handling`)
   - Refactors: `refactor/<short-description>`
+  - Docs: `docs/<short-description>` (e.g., `docs/update-readme`)
 - **One PR per feature/fix** - do not combine unrelated changes in a single PR
 - Always create branches from the latest `main`
 - After a PR is merged, create a new branch for the next change - do not reuse merged branches
+- If you find yourself on an existing branch that isn't `main`, switch to `main` first before creating a new branch
 
 ## Important Notes
 
