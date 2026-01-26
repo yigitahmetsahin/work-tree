@@ -366,7 +366,11 @@ export class TreeWork<
     }
 
     this._sealed = true;
-    return this;
+    // Cast to SealedTreeWork with the unique symbol brand
+    return this as unknown as SealedTreeWork<
+      TData,
+      TBase & TAccumulated & MaybeRecord<TName, unknown>
+    >;
   }
 
   /**
