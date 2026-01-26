@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 This changelog is automatically managed by [Release Please](https://github.com/googleapis/release-please).
 
+## [6.1.2](https://github.com/yigitahmetsahin/work-tree/compare/v6.1.1...v6.1.2) (2026-01-26)
+
+
+### Bug Fixes
+
+* use unique symbol brand for SealedTreeWork to enforce nominal typing ([f6c98d6](https://github.com/yigitahmetsahin/work-tree/commit/f6c98d6ee76718d19a57281ca2e9cde0145c7e13))
+
 ## [6.1.1](https://github.com/yigitahmetsahin/work-tree/compare/v6.1.0...v6.1.1) (2026-01-25)
 
 
