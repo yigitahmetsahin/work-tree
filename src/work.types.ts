@@ -194,10 +194,20 @@ export interface IRunnableTreeWork<
 }
 
 /**
+ * Unique symbol brand for sealed tree works.
+ * This creates a nominal type that cannot be accidentally satisfied.
+ */
+declare const SEALED_BRAND: unique symbol;
+
+/**
  * A sealed tree work that cannot be modified.
  * Has run() but no addSerial() or addParallel() methods.
+ * Uses a unique symbol brand to ensure only trees that have been
+ * explicitly sealed can satisfy this type.
  */
 export type SealedTreeWork<
   TData = Record<string, unknown>,
   TWorkResults extends Record<string, unknown> = Record<string, unknown>,
-> = IRunnableTreeWork<TData, TWorkResults>;
+> = IRunnableTreeWork<TData, TWorkResults> & {
+  readonly [SEALED_BRAND]: true;
+};
