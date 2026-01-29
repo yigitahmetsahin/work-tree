@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 This changelog is automatically managed by [Release Please](https://github.com/googleapis/release-please).
 
+## [6.5.0](https://github.com/yigitahmetsahin/work-tree/compare/v6.4.2...v6.5.0) (2026-01-29)
+
+
+### Features
+
+* add onBefore and onAfter lifecycle hooks for trees ([bfea825](https://github.com/yigitahmetsahin/work-tree/commit/bfea8251bd0f25b80adab200ef907b557621e179))
+
 ## [6.4.2](https://github.com/yigitahmetsahin/work-tree/compare/v6.4.1...v6.4.2) (2026-01-28)
 
 
