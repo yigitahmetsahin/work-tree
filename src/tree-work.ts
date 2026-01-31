@@ -155,6 +155,50 @@ export class TreeWork<
   }
 
   /**
+   * Check if the tree would be skipped without running it.
+   * Returns true if shouldRun is defined and returns false.
+   * Useful for pre-flight checks before execution.
+   *
+   * Note: The workResults in the context will be empty since no works have run yet.
+   *
+   * @param data - The data to pass to the shouldRun callback
+   * @returns Promise<boolean> - true if the tree would be skipped, false otherwise
+   *
+   * @example
+   * ```typescript
+   * const tree = Work.tree('conditionalTree', {
+   *   shouldRun: (ctx) => ctx.data.isEnabled,
+   * }).addSerial({ name: 'work', execute: async () => 'result' });
+   *
+   * // Check before running
+   * if (await tree.isSkipped({ isEnabled: false })) {
+   *   console.log('Tree will be skipped');
+   * } else {
+   *   await tree.run({ isEnabled: false });
+   * }
+   * ```
+   */
+  async isSkipped(data: TData): Promise<boolean> {
+    // If no shouldRun is defined, the tree will always run
+    if (!this.shouldRun) {
+      return false;
+    }
+
+    // Create a context with empty workResults for the shouldRun check
+    const workResults = new Map<string, WorkResult>();
+    const workResultsMap = new WorkResultsMap<TBase>(workResults);
+
+    const context: WorkflowContext<TData, TBase> = {
+      data,
+      workResults: workResultsMap,
+    };
+
+    // Evaluate shouldRun - if it returns false, the tree would be skipped
+    const shouldRun = await this.shouldRun(context);
+    return !shouldRun;
+  }
+
+  /**
    * Add a work to execute serially (in sequence with previous steps).
    * The work can be either a leaf work definition or another tree work.
    * Previous sibling results are available via ctx.workResults.get().

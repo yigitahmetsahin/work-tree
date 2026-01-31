@@ -2859,3 +2859,123 @@ describe('TreeWork.run()', () => {
     });
   });
 });
+
+describe('TreeWork.isSkipped()', () => {
+  it('should return false when no shouldRun is defined', async () => {
+    const tree = Work.tree('tree').addSerial({
+      name: 'work',
+      execute: async () => 'result',
+    });
+
+    const isSkipped = await tree.isSkipped({ value: 1 });
+
+    expect(isSkipped).toBe(false);
+  });
+
+  it('should return false when shouldRun returns true', async () => {
+    const tree = Work.tree('conditionalTree', {
+      shouldRun: () => true,
+    }).addSerial({
+      name: 'work',
+      execute: async () => 'result',
+    });
+
+    const isSkipped = await tree.isSkipped({ value: 1 });
+
+    expect(isSkipped).toBe(false);
+  });
+
+  it('should return true when shouldRun returns false', async () => {
+    const tree = Work.tree('conditionalTree', {
+      shouldRun: () => false,
+    }).addSerial({
+      name: 'work',
+      execute: async () => 'result',
+    });
+
+    const isSkipped = await tree.isSkipped({ value: 1 });
+
+    expect(isSkipped).toBe(true);
+  });
+
+  it('should handle async shouldRun callbacks', async () => {
+    const tree = Work.tree('asyncTree', {
+      shouldRun: async () => {
+        await new Promise((r) => setTimeout(r, 10));
+        return false;
+      },
+    }).addSerial({
+      name: 'work',
+      execute: async () => 'result',
+    });
+
+    const isSkipped = await tree.isSkipped({});
+
+    expect(isSkipped).toBe(true);
+  });
+
+  it('should pass data to shouldRun callback', async () => {
+    const shouldRunSpy = vi.fn((ctx: { data: { isEnabled: boolean } }) => ctx.data.isEnabled);
+
+    const tree = Work.tree('dataTree', {
+      shouldRun: shouldRunSpy,
+    }).addSerial({
+      name: 'work',
+      execute: async () => 'result',
+    });
+
+    // When isEnabled is true, shouldRun returns true, so isSkipped is false
+    const isSkipped1 = await tree.isSkipped({ isEnabled: true });
+    expect(isSkipped1).toBe(false);
+    expect(shouldRunSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ data: { isEnabled: true } })
+    );
+
+    // When isEnabled is false, shouldRun returns false, so isSkipped is true
+    const isSkipped2 = await tree.isSkipped({ isEnabled: false });
+    expect(isSkipped2).toBe(true);
+    expect(shouldRunSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ data: { isEnabled: false } })
+    );
+  });
+
+  it('should work on sealed trees', async () => {
+    const sealed = Work.tree('sealedTree', {
+      shouldRun: (ctx) => (ctx.data as { run: boolean }).run,
+    })
+      .addSerial({
+        name: 'work',
+        execute: async () => 'result',
+      })
+      .seal();
+
+    const isSkipped1 = await sealed.isSkipped({ run: true });
+    expect(isSkipped1).toBe(false);
+
+    const isSkipped2 = await sealed.isSkipped({ run: false });
+    expect(isSkipped2).toBe(true);
+  });
+
+  it('should provide empty workResults in context', async () => {
+    let receivedContext: unknown;
+
+    const tree = Work.tree('contextTree', {
+      shouldRun: (ctx) => {
+        receivedContext = ctx;
+        return true;
+      },
+    }).addSerial({
+      name: 'work',
+      execute: async () => 'result',
+    });
+
+    await tree.isSkipped({ testData: 123 });
+
+    expect(receivedContext).toHaveProperty('data', { testData: 123 });
+    expect(receivedContext).toHaveProperty('workResults');
+    // workResults should exist but be empty (no works have run yet)
+    expect(
+      (receivedContext as { workResults: { has: (k: string) => boolean } }).workResults.has('work')
+    ).toBe(false);
+  });
+});

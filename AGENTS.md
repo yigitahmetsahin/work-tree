@@ -364,6 +364,12 @@ const sealedWithFinal = tree.seal({
 tree.isSealed(); // boolean
 tree.options; // { failFast: boolean }
 
+// Check if tree would be skipped (without running it)
+const wouldBeSkipped = await tree.isSkipped(data);
+if (wouldBeSkipped) {
+  console.log('Tree will be skipped based on shouldRun');
+}
+
 // Run tree directly
 const result = await tree.run(initialData);
 
