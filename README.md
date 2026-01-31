@@ -191,6 +191,25 @@ tree.seal();
 tree.isSealed(); // true
 ```
 
+### `.isSkipped(data)`
+
+Check if the tree would be skipped **before running it**. Useful for pre-flight checks or conditional logic.
+
+```typescript
+const tree = Work.tree('conditionalTree', {
+  shouldRun: (ctx) => ctx.data.isEnabled,
+}).addSerial({ name: 'work', execute: async () => 'result' });
+
+// Check before running
+if (await tree.isSkipped({ isEnabled: false })) {
+  console.log('Tree will be skipped');
+} else {
+  const result = await tree.run({ isEnabled: true });
+}
+```
+
+> **Note:** The `workResults` in the context passed to `shouldRun` will be empty since no works have executed yet.
+
 ### Work Definition
 
 Each work can have the following properties:

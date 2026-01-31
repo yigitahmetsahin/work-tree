@@ -306,6 +306,14 @@ export interface IRunnableTreeWork<
   isSealed(): boolean;
   /** Execute the tree */
   run(data: TData): Promise<TreeResult<TData, TWorkResults>>;
+  /**
+   * Check if the tree would be skipped without running it.
+   * Returns true if shouldRun is defined and returns false.
+   * Useful for pre-flight checks before execution.
+   *
+   * Note: The workResults in the context will be empty since no works have run yet.
+   */
+  isSkipped(data: TData): Promise<boolean>;
 }
 
 /**
